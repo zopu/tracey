@@ -62,9 +62,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor > 0 {
 				m.cursor--
 			}
+		case "ctrl+u":
+			m.cursor -= 10
+			if m.cursor < 0 {
+				m.cursor = 0
+			}
 		case "down", "j":
 			if m.cursor < len(m.traces)-1 {
 				m.cursor++
+			}
+		case "ctrl+d":
+			m.cursor += 10
+			if m.cursor > len(m.traces)-1 {
+				m.cursor = len(m.traces) - 1
 			}
 
 		case "enter", " ":
@@ -85,32 +95,36 @@ func (m model) View() string {
 	s := "Select a trace to view\n\n"
 
 	enumeratorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("99")).MarginRight(1)
-	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).MarginRight(1)
 
 	tIDs := lo.Map(m.traces, func(t xray.TraceSummary, _ int) string {
-		line := t.Title()
-		if t.HasError() {
-			line += " ❌"
-		}
-		if t.HasFault() {
-			line += " ❗"
-		}
-		return line
+		return t.Title()
 	})
 
 	start := max(0, m.cursor-10)
 	end := min(len(tIDs), start+20)
 	l := list.New(tIDs[start:end]).
 		EnumeratorStyle(enumeratorStyle).
-		ItemStyle(itemStyle)
+		ItemStyleFunc(func(_ list.Items, i int) lipgloss.Style {
+			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#c6d0f5")).MarginRight(1)
+			if m.cursor == i+start {
+				style = style.Background(lipgloss.Color("#303446"))
+			}
+			if sel, ok := m.selected.Get(); ok && sel == i+start {
+				style = style.Background(lipgloss.Color("#414559"))
+			}
+			if m.traces[i+start].HasError() {
+				style = style.Foreground(lipgloss.Color("#e78284"))
+			}
+			if m.traces[i+start].HasFault() {
+				style = style.Foreground(lipgloss.Color("#e78284"))
+			}
+			return style
+		})
 
 	enumerator := func(_ list.Items, i int) string {
 		prefix := ""
 		if m.cursor == i+start {
 			prefix += "→"
-		}
-		if sel, ok := m.selected.Get(); ok && sel == i+start {
-			return prefix + "x"
 		}
 		return prefix + " "
 	}

@@ -17,8 +17,9 @@ type TraceSummary struct {
 
 func (t TraceSummary) Title() string {
 	title := fmt.Sprintf(
-		"%s (%d) %s %s",
+		"%s %v (%d) %s %s",
 		*t.summary.Id,
+		*t.summary.StartTime,
 		*t.summary.Http.HttpStatus,
 		*t.summary.Http.HttpMethod,
 		*t.summary.Http.HttpURL,
