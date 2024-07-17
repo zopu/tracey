@@ -12,11 +12,38 @@ import (
 )
 
 type TraceSummary struct {
-	ID string
+	summary types.TraceSummary
+}
+
+func (t TraceSummary) Title() string {
+	title := fmt.Sprintf(
+		"%s (%d) %s %s",
+		*t.summary.Id,
+		*t.summary.Http.HttpStatus,
+		*t.summary.Http.HttpMethod,
+		*t.summary.Http.HttpURL,
+	)
+	return title
 }
 
 func (t TraceSummary) FilterValue() string {
-	return t.ID
+	return fmt.Sprintf(
+		"%s %d %s %s",
+		*t.summary.Id,
+		*t.summary.Http.HttpStatus,
+		*t.summary.Http.HttpMethod,
+		*t.summary.Http.HttpURL,
+	)
+}
+
+func (t TraceSummary) HasError() bool {
+	status := *t.summary.Http.HttpStatus
+	return status >= 400 && status < 500
+}
+
+func (t TraceSummary) HasFault() bool {
+	status := *t.summary.Http.HttpStatus
+	return status >= 500 && status < 600
 }
 
 func FetchTraceSummaries(ctx context.Context) ([]TraceSummary, error) {
@@ -37,6 +64,6 @@ func FetchTraceSummaries(ctx context.Context) ([]TraceSummary, error) {
 	}
 
 	return lo.Map(resp.TraceSummaries, func(ts types.TraceSummary, _ int) TraceSummary {
-		return TraceSummary{ID: *ts.Id}
+		return TraceSummary{summary: ts}
 	}), nil
 }

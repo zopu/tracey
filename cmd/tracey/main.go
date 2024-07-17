@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -89,9 +88,15 @@ func (m model) View() string {
 	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).MarginRight(1)
 
 	tIDs := lo.Map(m.traces, func(t xray.TraceSummary, _ int) string {
-		return t.ID
+		line := t.Title()
+		if t.HasError() {
+			line += " ❌"
+		}
+		if t.HasFault() {
+			line += " ❗"
+		}
+		return line
 	})
-	s += fmt.Sprintf("Num tIDs: %v\n", len(tIDs))
 
 	start := max(0, m.cursor-10)
 	end := min(len(tIDs), start+20)
