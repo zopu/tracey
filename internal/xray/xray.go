@@ -3,6 +3,7 @@ package xray
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,14 +18,23 @@ type TraceSummary struct {
 
 func (t TraceSummary) Title() string {
 	title := fmt.Sprintf(
-		"%s %v (%d) %s %s",
+		"%s %v (%d) %s %vms %s",
 		*t.summary.Id,
 		*t.summary.StartTime,
 		*t.summary.Http.HttpStatus,
 		*t.summary.Http.HttpMethod,
-		*t.summary.Http.HttpURL,
+		*t.summary.ResponseTime*1000,
+		t.path(),
 	)
 	return title
+}
+
+func (t TraceSummary) path() string {
+	u, err := url.Parse(*t.summary.Http.HttpURL)
+	if err != nil {
+		return ""
+	}
+	return u.Path
 }
 
 func (t TraceSummary) FilterValue() string {
@@ -33,7 +43,7 @@ func (t TraceSummary) FilterValue() string {
 		*t.summary.Id,
 		*t.summary.Http.HttpStatus,
 		*t.summary.Http.HttpMethod,
-		*t.summary.Http.HttpURL,
+		t.path(),
 	)
 }
 

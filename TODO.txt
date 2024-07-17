@@ -1,4 +1,5 @@
 TODO:
+Sort traces by time
 Filter out certain traces e.g. healthchecks
 View trace detail
 Search traces
