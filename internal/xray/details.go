@@ -21,7 +21,7 @@ func (t TraceDetails) String() string {
 	return *t.trace.Id
 }
 
-func FetchTraceDetails(ctx context.Context, traceID string) (*TraceDetails, error) {
+func FetchTraceDetails(ctx context.Context, id TraceID) (*TraceDetails, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS configuration, %w", err)
@@ -29,13 +29,13 @@ func FetchTraceDetails(ctx context.Context, traceID string) (*TraceDetails, erro
 	client := xray.NewFromConfig(cfg)
 
 	resp, err := client.BatchGetTraces(ctx, &xray.BatchGetTracesInput{
-		TraceIds: []string{traceID},
+		TraceIds: []string{string(id)},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trace details, %w", err)
 	}
 	if len(resp.Traces) == 0 {
-		return nil, fmt.Errorf("trace not found")
+		return nil, fmt.Errorf("trace not found: %s", id)
 	}
 	return &TraceDetails{trace: resp.Traces[0]}, nil
 }

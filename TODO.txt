@@ -3,6 +3,7 @@ View trace detail
 
 TODO:
 Handle pagination of summary responses
+Handle cursor when trace list changes
 Filter out certain traces e.g. healthchecks
 Search traces
 Configurable preset lists for different things that look sus
