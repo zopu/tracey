@@ -30,6 +30,10 @@ func (t TraceSummary) Title() string {
 	return title
 }
 
+func (t TraceSummary) ID() string {
+	return *t.summary.Id
+}
+
 func (t TraceSummary) path() string {
 	u, err := url.Parse(*t.summary.Http.HttpURL)
 	if err != nil {
