@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,9 +11,9 @@ import (
 )
 
 type model struct {
-	error         mo.Option[string]
-	list          ui.TraceList
-	traceSelected mo.Option[xray.TraceDetails]
+	error       mo.Option[string]
+	list        ui.TraceList
+	detailsPane ui.DetailsPane
 }
 
 func initialModel() model {
@@ -68,7 +67,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.Traces = msg.traces
 
 	case TraceDetailsMsg:
-		m.traceSelected = mo.Some(*msg.trace)
+		m.detailsPane.Details = mo.Some(*msg.trace)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -86,7 +85,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter", " ":
 			id := m.list.Select()
-			m.traceSelected = mo.None[xray.TraceDetails]()
+			m.detailsPane.Details = mo.None[xray.TraceDetails]()
 			return m, fetchTraceDetails(id)
 		}
 	}
@@ -98,19 +97,9 @@ func (m model) View() string {
 		return "Error: " + m.error.MustGet() + "\n\n"
 	}
 
-	s := "Select a trace to view\n\n"
-	if m.traceSelected.IsPresent() {
-		s = "Selected trace: " + m.traceSelected.MustGet().String() + "\n\n"
-	}
-
-	s += m.list.View()
-
-	m.traceSelected.ForEach(func(td xray.TraceDetails) {
-		s += fmt.Sprintf("\n\nSegments: %d\n", len(td.Segments))
-		for _, segment := range td.Segments {
-			s += fmt.Sprintf("Name: %s, Subsegments: %d\nValue: %.40v\n\n", segment.Name, len(segment.SubSegments), segment)
-		}
-	})
+	s := m.list.View()
+	s += "\n\n"
+	s += m.detailsPane.View()
 	return s
 }
 
