@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -74,7 +75,11 @@ func FetchTraceSummaries(ctx context.Context) ([]TraceSummary, error) {
 		return nil, fmt.Errorf("failed to get trace summaries, %w", err)
 	}
 
-	return lo.Map(resp.TraceSummaries, func(ts types.TraceSummary, _ int) TraceSummary {
+	summaries := lo.Map(resp.TraceSummaries, func(ts types.TraceSummary, _ int) TraceSummary {
 		return TraceSummary{summary: ts}
-	}), nil
+	})
+	sort.Slice(summaries, func(i, j int) bool {
+		return !summaries[i].summary.StartTime.Before(*summaries[j].summary.StartTime)
+	})
+	return summaries, nil
 }

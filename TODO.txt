@@ -1,8 +1,12 @@
+Now:
+
 TODO:
-Sort traces by time
 Filter out certain traces e.g. healthchecks
 View trace detail
 Search traces
 Configurable preset lists for different things that look sus
 View logs for a trace
 Live updating
+
+Done:
+Sort traces by time
