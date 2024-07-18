@@ -106,9 +106,9 @@ func (m model) View() string {
 	s += m.list.View()
 
 	m.traceSelected.ForEach(func(td xray.TraceDetails) {
-		s += fmt.Sprintf("\n\nSegments: %d\n", len(td.Segments()))
-		for _, segment := range td.Segments() {
-			s += fmt.Sprintf("Document: %s\n", *segment.Document)
+		s += fmt.Sprintf("\n\nSegments: %d\n", len(td.Segments))
+		for _, segment := range td.Segments {
+			s += fmt.Sprintf("Name: %s, Subsegments: %d\nValue: %.40v\n\n", segment.Name, len(segment.SubSegments), segment)
 		}
 	})
 	return s
