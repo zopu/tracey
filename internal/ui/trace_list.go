@@ -12,6 +12,7 @@ type TraceList struct {
 	Traces   []xray.TraceSummary
 	Selected mo.Option[int]
 	cursor   int
+	Width    int
 }
 
 func (tl *TraceList) MoveCursor(amount int) {
@@ -39,8 +40,8 @@ func (tl TraceList) View() string {
 		return t.Title()
 	})
 
-	start := max(0, tl.cursor-10)
-	end := min(len(tIDs), start+20)
+	start := max(0, tl.cursor-5)
+	end := min(len(tIDs), start+10)
 	l := list.New(tIDs[start:end]).
 		EnumeratorStyle(enumeratorStyle).
 		ItemStyleFunc(func(_ list.Items, i int) lipgloss.Style {
@@ -67,5 +68,11 @@ func (tl TraceList) View() string {
 		}
 		return prefix + " "
 	}
-	return l.Enumerator(enumerator).String()
+	s := l.Enumerator(enumerator).String()
+	style := lipgloss.NewStyle().
+		Width(tl.Width - 2).
+		Height(10).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("63"))
+	return style.Render(s)
 }
