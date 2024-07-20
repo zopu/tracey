@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/mo"
@@ -29,7 +30,12 @@ type TraceSummaryMsg struct {
 }
 
 type TraceDetailsMsg struct {
-	trace *xray.TraceDetails
+	trace       *xray.TraceDetails
+	logsQueryID *xray.LogQueryID
+}
+
+type TraceLogsMsg struct {
+	logs *xray.LogData
 }
 
 type ErrorMsg struct {
@@ -46,11 +52,27 @@ func fetchTraceSummaries() tea.Msg {
 
 func fetchTraceDetails(id xray.TraceID) tea.Cmd {
 	return func() tea.Msg {
-		details, err := xray.FetchTraceDetails(context.Background(), id)
+		ctx := context.Background()
+		details, err := xray.FetchTraceDetails(ctx, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
-		return TraceDetailsMsg{trace: details}
+		logsQueryID, err := xray.StartLogsQuery(ctx, id)
+		if err != nil {
+			return ErrorMsg{Msg: err.Error()}
+		}
+		return TraceDetailsMsg{trace: details, logsQueryID: logsQueryID}
+	}
+}
+
+func fetchLogs(id xray.LogQueryID, delay time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(delay)
+		logs, err := xray.FetchLogs(context.Background(), id)
+		if err != nil {
+			return ErrorMsg{Msg: err.Error()}
+		}
+		return TraceLogsMsg{logs: logs}
 	}
 }
 
@@ -73,6 +95,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case TraceDetailsMsg:
 		m.detailsPane.Details = mo.Some(*msg.trace)
+		m.detailsPane.Logs = mo.None[xray.LogData]()
+		return m, fetchLogs(*msg.logsQueryID, time.Second)
+
+	case TraceLogsMsg:
+		m.detailsPane.Logs = mo.Some(*msg.logs)
 
 	case tea.KeyMsg:
 		switch msg.String() {

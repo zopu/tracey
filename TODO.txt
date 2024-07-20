@@ -1,14 +1,21 @@
 Now:
-View trace detail
 
 TODO:
+Tab between panes
+Scroll through details pane
+Table for timeline
+Backoff for incomplete log queries
+Configure formatting of logs
+Use one aws client config throughout
+Specify/Search log groups for logs
 Handle pagination of summary responses
 Handle cursor when trace list changes
 Filter out certain traces e.g. healthchecks
 Search traces
 Configurable preset lists for different things that look sus
-View logs for a trace
 Live updating
 
 Done:
 Sort traces by time
+View trace detail
+View logs for a trace

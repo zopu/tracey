@@ -12,6 +12,7 @@ import (
 
 type DetailsPane struct {
 	Details mo.Option[xray.TraceDetails]
+	Logs    mo.Option[xray.LogData]
 	Width   int
 	Height  int
 }
@@ -40,6 +41,17 @@ func (d DetailsPane) View() string {
 
 		s += "\n"
 	}
+
+	d.Logs.ForEach(func(logs xray.LogData) {
+		s += "Logs:\n"
+		s += fmt.Sprintf("Status: %s\n", logs.Results.Status)
+		for _, event := range logs.Results.Results {
+			for _, field := range event {
+				s += fmt.Sprintf("%s: %s\n", *field.Field, *field.Value)
+			}
+		}
+		s += "\n"
+	})
 
 	style := lipgloss.NewStyle().
 		Width(d.Width - 2).
