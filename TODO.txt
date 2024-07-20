@@ -1,7 +1,7 @@
 Now:
-Configure formatting of logs
 
 TODO:
+Figure out why traces are only fetched back to last calendar hour
 Tab between panes
 Scroll through details pane
 Table for timeline
@@ -16,6 +16,7 @@ Configurable preset lists for different things that look sus
 Live updating
 
 Done:
+Configure formatting of logs
 Sort traces by time
 View trace detail
 View logs for a trace

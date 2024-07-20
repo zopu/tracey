@@ -25,6 +25,9 @@ func initialModel(config config.App) model {
 		list: ui.TraceList{
 			Traces: []xray.TraceSummary{},
 		},
+		detailsPane: ui.DetailsPane{
+			LogFields: config.ParsedLogFields,
+		},
 	}
 }
 

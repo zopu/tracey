@@ -7,10 +7,16 @@ import (
 	"io"
 	"os"
 	"path"
+
+	"github.com/itchyny/gojq"
 )
 
 type App struct {
-	LogGroupName string `json:"log_group_name"`
+	LogGroupName string   `json:"log_group_name"`
+	LogFields    []string `json:"log_fields,omitempty"`
+
+	// These are populated from the LogFields field
+	ParsedLogFields []gojq.Query `json:"-"`
 }
 
 func findConfigFile() (*string, error) {
@@ -44,6 +50,15 @@ func Parse() (*App, error) {
 	err = json.Unmarshal(bytes, &cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config file json: %w", err)
+	}
+
+	cfg.ParsedLogFields = make([]gojq.Query, len(cfg.LogFields))
+	for i, field := range cfg.LogFields {
+		lf, jqErr := gojq.Parse(field)
+		if jqErr != nil {
+			return nil, fmt.Errorf("error parsing log field: %w", jqErr)
+		}
+		cfg.ParsedLogFields[i] = *lf
 	}
 	return &cfg, nil
 }

@@ -6,15 +6,17 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/itchyny/gojq"
 	"github.com/samber/mo"
 	"github.com/zopu/tracey/internal/xray"
 )
 
 type DetailsPane struct {
-	Details mo.Option[xray.TraceDetails]
-	Logs    mo.Option[xray.LogData]
-	Width   int
-	Height  int
+	LogFields []gojq.Query
+	Details   mo.Option[xray.TraceDetails]
+	Logs      mo.Option[xray.LogData]
+	Width     int
+	Height    int
 }
 
 func (d DetailsPane) View() string {
@@ -44,13 +46,7 @@ func (d DetailsPane) View() string {
 
 	d.Logs.ForEach(func(logs xray.LogData) {
 		s += "Logs:\n"
-		s += fmt.Sprintf("Status: %s\n", logs.Results.Status)
-		for _, event := range logs.Results.Results {
-			for _, field := range event {
-				s += fmt.Sprintf("%s: %s\n", *field.Field, *field.Value)
-			}
-		}
-		s += "\n"
+		s += ViewLogs(logs, d.LogFields)
 	})
 
 	style := lipgloss.NewStyle().
