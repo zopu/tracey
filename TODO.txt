@@ -1,11 +1,11 @@
 Now:
+Configure formatting of logs
 
 TODO:
 Tab between panes
 Scroll through details pane
 Table for timeline
 Backoff for incomplete log queries
-Configure formatting of logs
 Use one aws client config throughout
 Specify/Search log groups for logs
 Handle pagination of summary responses

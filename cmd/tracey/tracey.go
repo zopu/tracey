@@ -7,18 +7,21 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/mo"
+	"github.com/zopu/tracey/internal/config"
 	"github.com/zopu/tracey/internal/ui"
 	"github.com/zopu/tracey/internal/xray"
 )
 
 type model struct {
+	config      config.App
 	error       mo.Option[string]
 	list        ui.TraceList
 	detailsPane ui.DetailsPane
 }
 
-func initialModel() model {
+func initialModel(config config.App) model {
 	return model{
+		config: config,
 		list: ui.TraceList{
 			Traces: []xray.TraceSummary{},
 		},
@@ -50,14 +53,14 @@ func fetchTraceSummaries() tea.Msg {
 	return TraceSummaryMsg{traces: summary}
 }
 
-func fetchTraceDetails(id xray.TraceID) tea.Cmd {
+func fetchTraceDetails(id xray.TraceID, logGroupName string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		details, err := xray.FetchTraceDetails(ctx, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
-		logsQueryID, err := xray.StartLogsQuery(ctx, id)
+		logsQueryID, err := xray.StartLogsQuery(ctx, logGroupName, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
@@ -118,7 +121,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter", " ":
 			id := m.list.Select()
 			m.detailsPane.Details = mo.None[xray.TraceDetails]()
-			return m, fetchTraceDetails(id)
+			return m, fetchTraceDetails(id, m.config.LogGroupName)
 		}
 	}
 	return m, nil
@@ -136,8 +139,12 @@ func (m model) View() string {
 }
 
 func main() {
-	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	config, err := config.Parse()
+	if err != nil {
+		log.Fatalf("Error reading config: %s", err)
+	}
+	p := tea.NewProgram(initialModel(*config), tea.WithAltScreen())
+	if _, err = p.Run(); err != nil {
 		log.Fatalf("Alas, there's been an error: %v", err)
 	}
 }

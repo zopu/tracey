@@ -2,9 +2,7 @@ package xray
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,16 +15,12 @@ type LogData struct {
 
 type LogQueryID string
 
-func StartLogsQuery(ctx context.Context, id TraceID) (*LogQueryID, error) {
+func StartLogsQuery(ctx context.Context, logGroupName string, id TraceID) (*LogQueryID, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS configuration, %w", err)
 	}
 	client := cloudwatchlogs.NewFromConfig(cfg)
-	logGroupName := os.Getenv("TRACEY_LOG_GROUP")
-	if logGroupName == "" {
-		return nil, errors.New("no log group name set")
-	}
 
 	end := time.Now().Unix()
 	start := time.Now().Add(-24 * time.Hour).Unix()
