@@ -1,6 +1,7 @@
 package ui
 
 import (
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/list"
 	"github.com/samber/lo"
@@ -11,6 +12,8 @@ import (
 type TraceList struct {
 	Traces   []xray.TraceSummary
 	Selected mo.Option[int]
+	OnSelect func(xray.TraceID) tea.Cmd
+	focused  bool
 	cursor   int
 	Width    int
 }
@@ -25,9 +28,29 @@ func (tl *TraceList) MoveCursor(amount int) {
 	}
 }
 
-func (tl *TraceList) Select() xray.TraceID {
-	tl.Selected = mo.Some(tl.cursor)
-	return xray.TraceID(tl.Traces[tl.cursor].ID())
+func (tl *TraceList) SetFocus(focus bool) {
+	tl.focused = focus
+}
+
+func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
+	if msg, ok := msg.(tea.KeyMsg); ok {
+		switch msg.String() {
+		case "up", "k":
+			tl.MoveCursor(-1)
+		case "ctrl+u":
+			tl.MoveCursor(-10)
+		case "down", "j":
+			tl.MoveCursor(1)
+		case "ctrl+d":
+			tl.MoveCursor(10)
+
+		case "enter", " ":
+			tl.Selected = mo.Some(tl.cursor)
+			id := xray.TraceID(tl.Traces[tl.cursor].ID())
+			return tl.OnSelect(id)
+		}
+	}
+	return nil
 }
 
 func (tl TraceList) View() string {
@@ -69,10 +92,13 @@ func (tl TraceList) View() string {
 		return prefix + " "
 	}
 	s := l.Enumerator(enumerator).String()
+
 	style := lipgloss.NewStyle().
 		Width(tl.Width - 2).
 		Height(10).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("63"))
+		BorderStyle(lipgloss.NormalBorder())
+	if tl.focused {
+		style = style.BorderForeground(lipgloss.Color("63"))
+	}
 	return style.Render(s)
 }

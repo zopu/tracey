@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/itchyny/gojq"
 	"github.com/samber/mo"
@@ -15,8 +16,17 @@ type DetailsPane struct {
 	LogFields []gojq.Query
 	Details   mo.Option[xray.TraceDetails]
 	Logs      mo.Option[xray.LogData]
+	focused   bool
 	Width     int
 	Height    int
+}
+
+func (d *DetailsPane) SetFocus(focus bool) {
+	d.focused = focus
+}
+
+func (d *DetailsPane) Update(_ tea.Msg) tea.Cmd {
+	return nil
 }
 
 func (d DetailsPane) View() string {
@@ -53,8 +63,10 @@ func (d DetailsPane) View() string {
 		Width(d.Width - 2).
 		Height(d.Height - 4).
 		MaxHeight(d.Height - 2).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("63"))
+		BorderStyle(lipgloss.RoundedBorder())
+	if d.focused {
+		style = style.BorderForeground(lipgloss.Color("63"))
+	}
 	return style.Render(s)
 }
 

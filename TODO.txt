@@ -3,7 +3,6 @@ Now:
 TODO:
 Handle pagination of summary responses
 Figure out why traces are only fetched back to last calendar hour
-Tab between panes
 Scroll through details pane
 Table layouts for timeline, logs
 Backoff for incomplete log queries
@@ -20,3 +19,4 @@ Sort traces by time
 View trace detail
 View logs for a trace
 Configure path filters for trace list
+Tab between panes

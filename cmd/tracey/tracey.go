@@ -13,15 +13,26 @@ import (
 	"github.com/zopu/tracey/internal/xray"
 )
 
+const (
+	PaneList = iota
+	PaneDetails
+)
+
+type Pane interface {
+	SetFocus(bool)
+	Update(tea.Msg) tea.Cmd
+}
+
 type model struct {
-	config      config.App
-	error       mo.Option[string]
-	list        ui.TraceList
-	detailsPane ui.DetailsPane
+	config       config.App
+	error        mo.Option[string]
+	list         ui.TraceList
+	detailsPane  ui.DetailsPane
+	selectedPane int
 }
 
 func initialModel(config config.App) model {
-	return model{
+	m := model{
 		config: config,
 		list: ui.TraceList{
 			Traces: []xray.TraceSummary{},
@@ -29,7 +40,14 @@ func initialModel(config config.App) model {
 		detailsPane: ui.DetailsPane{
 			LogFields: config.ParsedLogFields,
 		},
+		selectedPane: PaneList,
 	}
+	m.list.OnSelect = func(id xray.TraceID) tea.Cmd {
+		m.detailsPane.Details = mo.None[xray.TraceDetails]()
+		return fetchTraceDetails(id, m.config.LogGroupName)
+	}
+	m.list.SetFocus(true)
+	return m
 }
 
 type TraceSummaryMsg struct {
@@ -100,6 +118,13 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var pane Pane
+	switch m.selectedPane {
+	case PaneDetails:
+		pane = &m.detailsPane
+	default:
+		pane = &m.list
+	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.list.Width = msg.Width
@@ -124,23 +149,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "tab":
+			m.selectNextPane()
+			return m, nil
 
-		case "up", "k":
-			m.list.MoveCursor(-1)
-		case "ctrl+u":
-			m.list.MoveCursor(-10)
-		case "down", "j":
-			m.list.MoveCursor(1)
-		case "ctrl+d":
-			m.list.MoveCursor(10)
-
-		case "enter", " ":
-			id := m.list.Select()
-			m.detailsPane.Details = mo.None[xray.TraceDetails]()
-			return m, fetchTraceDetails(id, m.config.LogGroupName)
+		default:
+			cmd := pane.Update(msg)
+			return m, cmd
 		}
 	}
 	return m, nil
+}
+
+func (m *model) selectNextPane() {
+	switch m.selectedPane {
+	case PaneList:
+		m.selectedPane = PaneDetails
+		m.list.SetFocus(false)
+		m.detailsPane.SetFocus(true)
+	case PaneDetails:
+		m.selectedPane = PaneList
+		m.detailsPane.SetFocus(false)
+		m.list.SetFocus(true)
+	}
 }
 
 func (m model) View() string {
