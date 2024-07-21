@@ -35,7 +35,7 @@ func (d DetailsPane) View() string {
 	}
 	td := d.Details.MustGet()
 
-	s := string(td.ID) + "\n\n"
+	s := ""
 
 	for _, segment := range td.Segments {
 		duration := segment.EndTime.Time().Sub(segment.StartTime.Time())

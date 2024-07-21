@@ -54,6 +54,26 @@ func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (tl TraceList) View() string {
+	if tl.focused {
+		return tl.ViewFocused()
+	}
+	if len(tl.Traces) == 0 {
+		return "Looking for traces...\n"
+	}
+
+	s := "No trace selected\n"
+	if tl.Selected.IsPresent() {
+		s = tl.Traces[tl.Selected.MustGet()].Title()
+	}
+
+	style := lipgloss.NewStyle().
+		Width(tl.Width - 2).
+		Height(1).
+		BorderStyle(lipgloss.NormalBorder())
+	return style.Render(s)
+}
+
+func (tl TraceList) ViewFocused() string {
 	if len(tl.Traces) == 0 {
 		return "Looking for traces...\n\n"
 	}
@@ -96,9 +116,7 @@ func (tl TraceList) View() string {
 	style := lipgloss.NewStyle().
 		Width(tl.Width - 2).
 		Height(10).
-		BorderStyle(lipgloss.NormalBorder())
-	if tl.focused {
-		style = style.BorderForeground(lipgloss.Color("63"))
-	}
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("63"))
 	return style.Render(s)
 }
