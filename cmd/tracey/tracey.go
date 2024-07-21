@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"regexp"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -48,12 +49,22 @@ type ErrorMsg struct {
 	Msg string
 }
 
-func fetchTraceSummaries() tea.Msg {
+func fetchTraceSummaries(pathFilters []regexp.Regexp) tea.Msg {
 	summary, err := xray.FetchTraceSummaries(context.Background())
 	if err != nil {
 		return ErrorMsg{Msg: err.Error()}
 	}
-	return TraceSummaryMsg{traces: summary}
+	filtered := make([]xray.TraceSummary, 0)
+	// Filter out traces that match any exclude regex
+	for _, exclude := range pathFilters {
+		for _, trace := range summary {
+			if !exclude.MatchString(trace.Path()) {
+				filtered = append(filtered, trace)
+			}
+		}
+	}
+
+	return TraceSummaryMsg{traces: filtered}
 }
 
 func fetchTraceDetails(id xray.TraceID, logGroupName string) tea.Cmd {
@@ -83,7 +94,9 @@ func fetchLogs(id xray.LogQueryID, delay time.Duration) tea.Cmd {
 }
 
 func (m model) Init() tea.Cmd {
-	return fetchTraceSummaries
+	return func() tea.Msg {
+		return fetchTraceSummaries(m.config.ParsedExcludePaths)
+	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

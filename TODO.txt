@@ -1,16 +1,15 @@
 Now:
 
 TODO:
+Handle pagination of summary responses
 Figure out why traces are only fetched back to last calendar hour
 Tab between panes
 Scroll through details pane
-Table for timeline
+Table layouts for timeline, logs
 Backoff for incomplete log queries
 Use one aws client config throughout
 Specify/Search log groups for logs
-Handle pagination of summary responses
 Handle cursor when trace list changes
-Filter out certain traces e.g. healthchecks
 Search traces
 Configurable preset lists for different things that look sus
 Live updating
@@ -20,3 +19,4 @@ Configure formatting of logs
 Sort traces by time
 View trace detail
 View logs for a trace
+Configure path filters for trace list

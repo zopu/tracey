@@ -25,7 +25,7 @@ func (t TraceSummary) Title() string {
 		*t.summary.Http.HttpStatus,
 		*t.summary.Http.HttpMethod,
 		*t.summary.ResponseTime*1000,
-		t.path(),
+		t.Path(),
 	)
 	return title
 }
@@ -34,7 +34,7 @@ func (t TraceSummary) ID() string {
 	return *t.summary.Id
 }
 
-func (t TraceSummary) path() string {
+func (t TraceSummary) Path() string {
 	u, err := url.Parse(*t.summary.Http.HttpURL)
 	if err != nil {
 		return ""
@@ -48,7 +48,7 @@ func (t TraceSummary) FilterValue() string {
 		*t.summary.Id,
 		*t.summary.Http.HttpStatus,
 		*t.summary.Http.HttpMethod,
-		t.path(),
+		t.Path(),
 	)
 }
 

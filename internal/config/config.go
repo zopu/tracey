@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
 
 	"github.com/itchyny/gojq"
 )
@@ -14,9 +15,11 @@ import (
 type App struct {
 	LogGroupName string   `json:"log_group_name"`
 	LogFields    []string `json:"log_fields,omitempty"`
+	ExcludePaths []string `json:"exclude_paths,omitempty"`
 
-	// These are populated from the LogFields field
-	ParsedLogFields []gojq.Query `json:"-"`
+	// These are populated after parsing JSON
+	ParsedLogFields    []gojq.Query    `json:"-"`
+	ParsedExcludePaths []regexp.Regexp `json:"-"`
 }
 
 func findConfigFile() (*string, error) {
@@ -60,5 +63,15 @@ func Parse() (*App, error) {
 		}
 		cfg.ParsedLogFields[i] = *lf
 	}
+
+	cfg.ParsedExcludePaths = make([]regexp.Regexp, len(cfg.ExcludePaths))
+	for i, exclude := range cfg.ExcludePaths {
+		re, reErr := regexp.Compile(exclude)
+		if reErr != nil {
+			return nil, fmt.Errorf("error compiling exclude regex: %w", reErr)
+		}
+		cfg.ParsedExcludePaths[i] = *re
+	}
+
 	return &cfg, nil
 }
