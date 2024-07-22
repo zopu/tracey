@@ -13,13 +13,23 @@ import (
 )
 
 type App struct {
-	LogGroupName string   `json:"log_group_name"`
-	LogFields    []string `json:"log_fields,omitempty"`
-	ExcludePaths []string `json:"exclude_paths,omitempty"`
+	LogGroupName string     `json:"log_group_name"`
+	LogFields    []LogField `json:"log_fields,omitempty"`
+	ExcludePaths []string   `json:"exclude_paths,omitempty"`
 
 	// These are populated after parsing JSON
-	ParsedLogFields    []gojq.Query    `json:"-"`
-	ParsedExcludePaths []regexp.Regexp `json:"-"`
+	ParsedLogFields    []ParsedLogField `json:"-"`
+	ParsedExcludePaths []regexp.Regexp  `json:"-"`
+}
+
+type LogField struct {
+	Title string `json:"title"`
+	Query string `json:"query"`
+}
+
+type ParsedLogField struct {
+	Title string     `json:"-"`
+	Query gojq.Query `json:"-"`
 }
 
 func findConfigFile() (*string, error) {
@@ -55,13 +65,13 @@ func Parse() (*App, error) {
 		return nil, fmt.Errorf("error parsing config file json: %w", err)
 	}
 
-	cfg.ParsedLogFields = make([]gojq.Query, len(cfg.LogFields))
+	cfg.ParsedLogFields = make([]ParsedLogField, len(cfg.LogFields))
 	for i, field := range cfg.LogFields {
-		lf, jqErr := gojq.Parse(field)
+		lf, jqErr := gojq.Parse(field.Query)
 		if jqErr != nil {
 			return nil, fmt.Errorf("error parsing log field: %w", jqErr)
 		}
-		cfg.ParsedLogFields[i] = *lf
+		cfg.ParsedLogFields[i] = ParsedLogField{Title: field.Title, Query: *lf}
 	}
 
 	cfg.ParsedExcludePaths = make([]regexp.Regexp, len(cfg.ExcludePaths))

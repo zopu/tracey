@@ -7,13 +7,13 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/itchyny/gojq"
 	"github.com/samber/mo"
+	"github.com/zopu/tracey/internal/config"
 	"github.com/zopu/tracey/internal/xray"
 )
 
 type DetailsPane struct {
-	LogFields []gojq.Query
+	LogFields []config.ParsedLogField
 	Details   mo.Option[xray.TraceDetails]
 	Logs      mo.Option[xray.LogData]
 	focused   bool
@@ -56,7 +56,7 @@ func (d DetailsPane) View() string {
 
 	d.Logs.ForEach(func(logs xray.LogData) {
 		s += "Logs:\n"
-		s += ViewLogs(logs, d.LogFields)
+		s += ViewLogs(logs, d.LogFields, d.Width-8)
 	})
 
 	style := lipgloss.NewStyle().
