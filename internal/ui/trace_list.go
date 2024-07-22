@@ -11,8 +11,7 @@ import (
 
 type TraceList struct {
 	Traces   []xray.TraceSummary
-	Selected mo.Option[int]
-	OnSelect func(xray.TraceID) tea.Cmd
+	selected mo.Option[int]
 	focused  bool
 	cursor   int
 	Width    int
@@ -32,6 +31,10 @@ func (tl *TraceList) SetFocus(focus bool) {
 	tl.focused = focus
 }
 
+type ListSelectionMsg struct {
+	ID xray.TraceID
+}
+
 func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
@@ -45,9 +48,10 @@ func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 			tl.MoveCursor(10)
 
 		case "enter", " ":
-			tl.Selected = mo.Some(tl.cursor)
-			id := xray.TraceID(tl.Traces[tl.cursor].ID())
-			return tl.OnSelect(id)
+			tl.selected = mo.Some(tl.cursor)
+			return func() tea.Msg {
+				return ListSelectionMsg{ID: xray.TraceID(tl.Traces[tl.cursor].ID())}
+			}
 		}
 	}
 	return nil
@@ -62,8 +66,8 @@ func (tl TraceList) View() string {
 	}
 
 	s := "No trace selected\n"
-	if tl.Selected.IsPresent() {
-		s = tl.Traces[tl.Selected.MustGet()].Title()
+	if tl.selected.IsPresent() {
+		s = tl.Traces[tl.selected.MustGet()].Title()
 	}
 
 	style := lipgloss.NewStyle().
@@ -92,7 +96,7 @@ func (tl TraceList) ViewFocused() string {
 			if tl.cursor == i+start {
 				style = style.Background(lipgloss.Color("#303446"))
 			}
-			if sel, ok := tl.Selected.Get(); ok && sel == i+start {
+			if sel, ok := tl.selected.Get(); ok && sel == i+start {
 				style = style.Background(lipgloss.Color("#414559"))
 			}
 			if tl.Traces[i+start].HasError() {

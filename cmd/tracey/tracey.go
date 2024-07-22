@@ -42,10 +42,6 @@ func initialModel(config config.App) model {
 		},
 		selectedPane: PaneList,
 	}
-	m.list.OnSelect = func(id xray.TraceID) tea.Cmd {
-		m.detailsPane.Details = mo.None[xray.TraceDetails]()
-		return fetchTraceDetails(id, m.config.LogGroupName)
-	}
 	m.list.SetFocus(true)
 	return m
 }
@@ -144,6 +140,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case TraceLogsMsg:
 		m.detailsPane.Logs = mo.Some(*msg.logs)
+
+	case ui.ListSelectionMsg:
+		m.detailsPane.Details = mo.None[xray.TraceDetails]()
+		return m, fetchTraceDetails(msg.ID, m.config.LogGroupName)
 
 	case tea.KeyMsg:
 		switch msg.String() {
