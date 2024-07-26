@@ -3,29 +3,29 @@ package store
 import (
 	"sync"
 
-	"github.com/zopu/tracey/internal/xray"
+	"github.com/zopu/tracey/internal/aws"
 )
 
 type Store struct {
 	mu         sync.Mutex
-	summaries  []xray.TraceSummary
+	summaries  []aws.TraceSummary
 	summaryIDs map[string]struct{}
 }
 
 func New() Store {
 	return Store{
-		summaries:  []xray.TraceSummary{},
+		summaries:  []aws.TraceSummary{},
 		summaryIDs: map[string]struct{}{},
 	}
 }
 
-func (s *Store) GetTraceSummaries() []xray.TraceSummary {
+func (s *Store) GetTraceSummaries() []aws.TraceSummary {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]xray.TraceSummary{}, s.summaries...)
+	return append([]aws.TraceSummary{}, s.summaries...)
 }
 
-func (s *Store) AddTraceSummaries(summaries []xray.TraceSummary) {
+func (s *Store) AddTraceSummaries(summaries []aws.TraceSummary) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, summary := range summaries {

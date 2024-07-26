@@ -8,14 +8,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/samber/mo"
+	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
-	"github.com/zopu/tracey/internal/xray"
 )
 
 type DetailsPane struct {
 	LogFields []config.ParsedLogField
-	Details   mo.Option[xray.TraceDetails]
-	Logs      mo.Option[xray.LogData]
+	Details   mo.Option[aws.TraceDetails]
+	Logs      mo.Option[aws.LogData]
 	focused   bool
 	Width     int
 	Height    int
@@ -45,7 +45,7 @@ func (d DetailsPane) View() string {
 			s += viewSubsegment(subsegment)
 		}
 
-		segment.SQL.ForEach(func(sql xray.SQL) {
+		segment.SQL.ForEach(func(sql aws.SQL) {
 			re := regexp.MustCompile(`\s+`)
 			q := re.ReplaceAllString(sql.SanitizedQuery, " ")
 			s += fmt.Sprintf("Query: %.150s\n", q)
@@ -54,7 +54,7 @@ func (d DetailsPane) View() string {
 		s += "\n"
 	}
 
-	d.Logs.ForEach(func(logs xray.LogData) {
+	d.Logs.ForEach(func(logs aws.LogData) {
 		s += "Logs:\n"
 		s += ViewLogs(logs, d.LogFields, d.Width-8)
 	})
@@ -70,7 +70,7 @@ func (d DetailsPane) View() string {
 	return style.Render(s)
 }
 
-func viewSubsegment(subsegment xray.SubSegment) string {
+func viewSubsegment(subsegment aws.SubSegment) string {
 	duration := subsegment.EndTime.Time().Sub(subsegment.StartTime.Time())
 	s := fmt.Sprintf("%s\t%s\t%s\n",
 		subsegment.StartTime.Time().Format(time.StampMilli),

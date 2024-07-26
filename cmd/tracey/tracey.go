@@ -8,10 +8,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/mo"
+	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
 	"github.com/zopu/tracey/internal/store"
 	"github.com/zopu/tracey/internal/ui"
-	"github.com/zopu/tracey/internal/xray"
 )
 
 const (
@@ -39,7 +39,7 @@ func initialModel(config config.App) model {
 	m := model{
 		config: config,
 		list: ui.TraceList{
-			Traces: []xray.TraceSummary{},
+			Traces: []aws.TraceSummary{},
 		},
 		detailsPane: ui.DetailsPane{
 			LogFields: config.Logs.ParsedFields,
@@ -53,17 +53,17 @@ func initialModel(config config.App) model {
 
 type TraceSummaryMsg struct {
 	NextToken       mo.Option[string]
-	traces          []xray.TraceSummary
+	traces          []aws.TraceSummary
 	ShouldFetchMore bool
 }
 
 type TraceDetailsMsg struct {
-	trace       *xray.TraceDetails
-	logsQueryID *xray.LogQueryID
+	trace       *aws.TraceDetails
+	logsQueryID *aws.LogQueryID
 }
 
 type TraceLogsMsg struct {
-	logs *xray.LogData
+	logs *aws.LogData
 }
 
 type ErrorMsg struct {
@@ -71,14 +71,14 @@ type ErrorMsg struct {
 }
 
 func fetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextToken mo.Option[string]) tea.Msg {
-	result, err := xray.FetchTraceSummaries(context.Background(), nextToken)
+	result, err := aws.FetchTraceSummaries(context.Background(), nextToken)
 	if err != nil {
 		return ErrorMsg{Msg: err.Error()}
 	}
 	store.AddTraceSummaries(result.Summaries)
 	summaries := store.GetTraceSummaries()
 
-	filtered := make([]xray.TraceSummary, 0)
+	filtered := make([]aws.TraceSummary, 0)
 	// Filter out traces that match any exclude regex
 	for _, exclude := range pathFilters {
 		for _, trace := range summaries {
@@ -96,14 +96,14 @@ func fetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextTo
 	}
 }
 
-func fetchTraceDetails(id xray.TraceID, logGroupName string) tea.Cmd {
+func fetchTraceDetails(id aws.TraceID, logGroupName string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		details, err := xray.FetchTraceDetails(ctx, id)
+		details, err := aws.FetchTraceDetails(ctx, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
-		logsQueryID, err := xray.StartLogsQuery(ctx, logGroupName, id)
+		logsQueryID, err := aws.StartLogsQuery(ctx, logGroupName, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
@@ -111,10 +111,10 @@ func fetchTraceDetails(id xray.TraceID, logGroupName string) tea.Cmd {
 	}
 }
 
-func fetchLogs(id xray.LogQueryID, delay time.Duration) tea.Cmd {
+func fetchLogs(id aws.LogQueryID, delay time.Duration) tea.Cmd {
 	return func() tea.Msg {
 		time.Sleep(delay)
-		logs, err := xray.FetchLogs(context.Background(), id)
+		logs, err := aws.FetchLogs(context.Background(), id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
@@ -157,14 +157,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case TraceDetailsMsg:
 		m.detailsPane.Details = mo.Some(*msg.trace)
-		m.detailsPane.Logs = mo.None[xray.LogData]()
+		m.detailsPane.Logs = mo.None[aws.LogData]()
 		return m, fetchLogs(*msg.logsQueryID, time.Second)
 
 	case TraceLogsMsg:
 		m.detailsPane.Logs = mo.Some(*msg.logs)
 
 	case ui.ListSelectionMsg:
-		m.detailsPane.Details = mo.None[xray.TraceDetails]()
+		m.detailsPane.Details = mo.None[aws.TraceDetails]()
 		return m, fetchTraceDetails(msg.ID, m.config.Logs.Groups[0])
 
 	case ui.ListAtEndMsg:

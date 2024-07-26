@@ -1,3 +1,3 @@
-package xray
+package aws
 
 type TraceID string

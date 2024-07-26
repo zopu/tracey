@@ -10,12 +10,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/itchyny/gojq"
 	"github.com/samber/lo"
+	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
-	"github.com/zopu/tracey/internal/xray"
 )
 
 //nolint:gocognit // Work in progress
-func ViewLogs(logs xray.LogData, fields []config.ParsedLogField, tableWidth int) string {
+func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) string {
 	s := fmt.Sprintf("Status: %s\n\n", logs.Results.Status)
 
 	columns := lo.Map(fields, func(f config.ParsedLogField, _ int) table.Column {

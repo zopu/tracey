@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/xray/types"
+	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/store"
-	"github.com/zopu/tracey/internal/xray"
 )
 
 func TestSummaryDeduplication(t *testing.T) {
 	ids := []string{"1234", "5678", "9012"}
-	ts := []xray.TraceSummary{
+	ts := []aws.TraceSummary{
 		{
 			Data: types.TraceSummary{
 				Id: &ids[0],
@@ -29,7 +29,7 @@ func TestSummaryDeduplication(t *testing.T) {
 		t.Errorf("Expected %d traces, got %d", len(ts), len(got))
 	}
 
-	ts = []xray.TraceSummary{
+	ts = []aws.TraceSummary{
 		{
 			Data: types.TraceSummary{
 				Id: &ids[1],

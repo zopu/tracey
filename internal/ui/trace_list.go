@@ -6,11 +6,11 @@ import (
 	"github.com/charmbracelet/lipgloss/list"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
-	"github.com/zopu/tracey/internal/xray"
+	"github.com/zopu/tracey/internal/aws"
 )
 
 type TraceList struct {
-	Traces    []xray.TraceSummary
+	Traces    []aws.TraceSummary
 	NextToken mo.Option[string]
 	selected  mo.Option[int]
 	focused   bool
@@ -33,7 +33,7 @@ func (tl *TraceList) SetFocus(focus bool) {
 }
 
 type ListSelectionMsg struct {
-	ID xray.TraceID
+	ID aws.TraceID
 }
 
 type ListAtEndMsg struct{}
@@ -53,7 +53,7 @@ func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 		case "enter", " ":
 			tl.selected = mo.Some(tl.cursor)
 			return func() tea.Msg {
-				return ListSelectionMsg{ID: xray.TraceID(tl.Traces[tl.cursor].ID())}
+				return ListSelectionMsg{ID: aws.TraceID(tl.Traces[tl.cursor].ID())}
 			}
 		}
 	}
@@ -91,7 +91,7 @@ func (tl TraceList) ViewFocused() string {
 	}
 	enumeratorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("99")).MarginRight(1)
 
-	tIDs := lo.Map(tl.Traces, func(t xray.TraceSummary, _ int) string {
+	tIDs := lo.Map(tl.Traces, func(t aws.TraceSummary, _ int) string {
 		return t.Title()
 	})
 
