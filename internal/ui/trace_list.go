@@ -10,11 +10,12 @@ import (
 )
 
 type TraceList struct {
-	Traces   []xray.TraceSummary
-	selected mo.Option[int]
-	focused  bool
-	cursor   int
-	Width    int
+	Traces    []xray.TraceSummary
+	NextToken mo.Option[string]
+	selected  mo.Option[int]
+	focused   bool
+	cursor    int
+	Width     int
 }
 
 func (tl *TraceList) MoveCursor(amount int) {
@@ -35,6 +36,8 @@ type ListSelectionMsg struct {
 	ID xray.TraceID
 }
 
+type ListAtEndMsg struct{}
+
 func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
@@ -52,6 +55,11 @@ func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 			return func() tea.Msg {
 				return ListSelectionMsg{ID: xray.TraceID(tl.Traces[tl.cursor].ID())}
 			}
+		}
+	}
+	if tl.cursor == len(tl.Traces)-1 {
+		return func() tea.Msg {
+			return ListAtEndMsg{}
 		}
 	}
 	return nil

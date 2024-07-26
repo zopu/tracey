@@ -1,16 +1,19 @@
 Now:
+Handle pagination of summary responses
+
+For Demo:
+Search traces
+Multiple log groups
 
 TODO:
 Move logs to a separate pane
 Table layouts for timeline
-Handle pagination of summary responses
 Figure out why traces are only fetched back to last calendar hour
 Scroll through details pane
 Backoff for incomplete log queries
 Use one aws client config throughout
-Specify/Search log groups for logs
+Search log groups for logs
 Handle cursor when trace list changes
-Search traces
 Configurable preset lists for different things that look sus
 Live updating
 

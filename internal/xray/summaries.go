@@ -11,31 +11,37 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/xray"
 	"github.com/aws/aws-sdk-go-v2/service/xray/types"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
+type SummaryData struct {
+	NextToken mo.Option[string]
+	Summaries []TraceSummary
+}
+
 type TraceSummary struct {
-	summary types.TraceSummary
+	Data types.TraceSummary
 }
 
 func (t TraceSummary) Title() string {
 	title := fmt.Sprintf(
 		"%s %v (%d) %s %vms %s",
-		*t.summary.Id,
-		*t.summary.StartTime,
-		*t.summary.Http.HttpStatus,
-		*t.summary.Http.HttpMethod,
-		*t.summary.ResponseTime*1000,
+		*t.Data.Id,
+		*t.Data.StartTime,
+		*t.Data.Http.HttpStatus,
+		*t.Data.Http.HttpMethod,
+		*t.Data.ResponseTime*1000,
 		t.Path(),
 	)
 	return title
 }
 
 func (t TraceSummary) ID() string {
-	return *t.summary.Id
+	return *t.Data.Id
 }
 
 func (t TraceSummary) Path() string {
-	u, err := url.Parse(*t.summary.Http.HttpURL)
+	u, err := url.Parse(*t.Data.Http.HttpURL)
 	if err != nil {
 		return ""
 	}
@@ -45,24 +51,27 @@ func (t TraceSummary) Path() string {
 func (t TraceSummary) FilterValue() string {
 	return fmt.Sprintf(
 		"%s %d %s %s",
-		*t.summary.Id,
-		*t.summary.Http.HttpStatus,
-		*t.summary.Http.HttpMethod,
+		*t.Data.Id,
+		*t.Data.Http.HttpStatus,
+		*t.Data.Http.HttpMethod,
 		t.Path(),
 	)
 }
 
 func (t TraceSummary) HasError() bool {
-	status := *t.summary.Http.HttpStatus
+	status := *t.Data.Http.HttpStatus
 	return status >= 400 && status < 500
 }
 
 func (t TraceSummary) HasFault() bool {
-	status := *t.summary.Http.HttpStatus
+	status := *t.Data.Http.HttpStatus
 	return status >= 500 && status < 600
 }
 
-func FetchTraceSummaries(ctx context.Context) ([]TraceSummary, error) {
+func FetchTraceSummaries(
+	ctx context.Context,
+	nextToken mo.Option[string],
+) (*SummaryData, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS configuration, %w", err)
@@ -74,16 +83,21 @@ func FetchTraceSummaries(ctx context.Context) ([]TraceSummary, error) {
 	resp, err := client.GetTraceSummaries(ctx, &xray.GetTraceSummariesInput{
 		EndTime:   &end,
 		StartTime: &start,
+		NextToken: nextToken.ToPointer(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get trace summaries, %w", err)
 	}
 
 	summaries := lo.Map(resp.TraceSummaries, func(ts types.TraceSummary, _ int) TraceSummary {
-		return TraceSummary{summary: ts}
+		return TraceSummary{Data: ts}
 	})
 	sort.Slice(summaries, func(i, j int) bool {
-		return !summaries[i].summary.StartTime.Before(*summaries[j].summary.StartTime)
+		return !summaries[i].Data.StartTime.Before(*summaries[j].Data.StartTime)
 	})
-	return summaries, nil
+	result := SummaryData{Summaries: summaries}
+	if resp.NextToken != nil {
+		result.NextToken = mo.Some(*resp.NextToken)
+	}
+	return &result, nil
 }

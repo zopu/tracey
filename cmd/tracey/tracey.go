@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/mo"
 	"github.com/zopu/tracey/internal/config"
+	"github.com/zopu/tracey/internal/store"
 	"github.com/zopu/tracey/internal/ui"
 	"github.com/zopu/tracey/internal/xray"
 )
@@ -25,6 +26,7 @@ type Pane interface {
 
 type model struct {
 	config       config.App
+	store        *store.Store
 	error        mo.Option[string]
 	list         ui.TraceList
 	detailsPane  ui.DetailsPane
@@ -32,6 +34,7 @@ type model struct {
 }
 
 func initialModel(config config.App) model {
+	st := store.New()
 	m := model{
 		config: config,
 		list: ui.TraceList{
@@ -41,13 +44,16 @@ func initialModel(config config.App) model {
 			LogFields: config.ParsedLogFields,
 		},
 		selectedPane: PaneList,
+		store:        &st,
 	}
 	m.list.SetFocus(true)
 	return m
 }
 
 type TraceSummaryMsg struct {
-	traces []xray.TraceSummary
+	NextToken       mo.Option[string]
+	traces          []xray.TraceSummary
+	ShouldFetchMore bool
 }
 
 type TraceDetailsMsg struct {
@@ -63,22 +69,30 @@ type ErrorMsg struct {
 	Msg string
 }
 
-func fetchTraceSummaries(pathFilters []regexp.Regexp) tea.Msg {
-	summary, err := xray.FetchTraceSummaries(context.Background())
+func fetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextToken mo.Option[string]) tea.Msg {
+	result, err := xray.FetchTraceSummaries(context.Background(), nextToken)
 	if err != nil {
 		return ErrorMsg{Msg: err.Error()}
 	}
+	store.AddTraceSummaries(result.Summaries)
+	summaries := store.GetTraceSummaries()
+
 	filtered := make([]xray.TraceSummary, 0)
 	// Filter out traces that match any exclude regex
 	for _, exclude := range pathFilters {
-		for _, trace := range summary {
+		for _, trace := range summaries {
 			if !exclude.MatchString(trace.Path()) {
 				filtered = append(filtered, trace)
 			}
 		}
 	}
+	shouldFetchMore := result.NextToken.IsPresent() && store.Size() < 20
 
-	return TraceSummaryMsg{traces: filtered}
+	return TraceSummaryMsg{
+		traces:          filtered,
+		NextToken:       result.NextToken,
+		ShouldFetchMore: shouldFetchMore,
+	}
 }
 
 func fetchTraceDetails(id xray.TraceID, logGroupName string) tea.Cmd {
@@ -109,7 +123,7 @@ func fetchLogs(id xray.LogQueryID, delay time.Duration) tea.Cmd {
 
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg {
-		return fetchTraceSummaries(m.config.ParsedExcludePaths)
+		return fetchTraceSummaries(m.store, m.config.ParsedExcludePaths, mo.None[string]())
 	}
 }
 
@@ -132,6 +146,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case TraceSummaryMsg:
 		m.list.Traces = msg.traces
+		m.list.NextToken = msg.NextToken
+		if msg.ShouldFetchMore {
+			return m, func() tea.Msg {
+				return fetchTraceSummaries(m.store, m.config.ParsedExcludePaths, msg.NextToken)
+			}
+		}
 
 	case TraceDetailsMsg:
 		m.detailsPane.Details = mo.Some(*msg.trace)
@@ -144,6 +164,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ui.ListSelectionMsg:
 		m.detailsPane.Details = mo.None[xray.TraceDetails]()
 		return m, fetchTraceDetails(msg.ID, m.config.LogGroupName)
+
+	case ui.ListAtEndMsg:
+		return m, func() tea.Msg {
+			return fetchTraceSummaries(m.store, m.config.ParsedExcludePaths, m.list.NextToken)
+		}
 
 	case tea.KeyMsg:
 		switch msg.String() {
