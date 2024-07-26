@@ -25,12 +25,13 @@ type Pane interface {
 }
 
 type model struct {
-	config       config.App
-	store        *store.Store
-	error        mo.Option[string]
-	list         ui.TraceList
-	detailsPane  ui.DetailsPane
-	selectedPane int
+	config        config.App
+	store         *store.Store
+	error         mo.Option[string]
+	list          ui.TraceList
+	detailsPane   ui.DetailsPane
+	selectedPane  int
+	width, height int
 }
 
 func initialModel(config config.App) model {
@@ -135,11 +136,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 		pane = &m.list
 	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.Width = msg.Width
-		m.detailsPane.Width = msg.Width
-		m.detailsPane.Height = msg.Height - 14
+		m.width = msg.Width
+		m.height = msg.Height
+		m.updatePaneDimensions()
 
 	case ErrorMsg:
 		m.error = mo.Some(msg.Msg)
@@ -176,6 +178,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "tab":
 			m.selectNextPane()
+			m.updatePaneDimensions()
 			return m, nil
 
 		default:
@@ -196,6 +199,16 @@ func (m *model) selectNextPane() {
 		m.selectedPane = PaneList
 		m.detailsPane.SetFocus(false)
 		m.list.SetFocus(true)
+	}
+}
+
+func (m *model) updatePaneDimensions() {
+	m.list.Width = m.width
+	m.detailsPane.Width = m.width
+	if m.selectedPane == PaneList {
+		m.detailsPane.Height = m.height - 13
+	} else {
+		m.detailsPane.Height = m.height - 4
 	}
 }
 

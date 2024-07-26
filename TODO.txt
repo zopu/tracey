@@ -1,12 +1,12 @@
 Now:
-Handle pagination of summary responses
 
 For Demo:
-Search traces
 Multiple log groups
+Search traces
 
 TODO:
 Move logs to a separate pane
+Summarize SQL queries
 Table layouts for timeline
 Figure out why traces are only fetched back to last calendar hour
 Scroll through details pane
@@ -25,3 +25,5 @@ Configure path filters for trace list
 Tab between panes
 Configure formatting of logs
 Table layout for logs
+Handle pagination of summary responses
+Sizing of details pane when list is collapsed
