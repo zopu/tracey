@@ -13,13 +13,19 @@ import (
 )
 
 type App struct {
-	LogGroupName string     `json:"log_group_name"`
-	LogFields    []LogField `json:"log_fields,omitempty"`
-	ExcludePaths []string   `json:"exclude_paths,omitempty"`
+	Logs         Logs     `json:"logs"`
+	ExcludePaths []string `json:"exclude_paths,omitempty"`
 
 	// These are populated after parsing JSON
-	ParsedLogFields    []ParsedLogField `json:"-"`
-	ParsedExcludePaths []regexp.Regexp  `json:"-"`
+	ParsedExcludePaths []regexp.Regexp `json:"-"`
+}
+
+type Logs struct {
+	Groups []string   `json:"groups"`
+	Fields []LogField `json:"fields,omitempty"`
+
+	// These are populated after parsing JSON
+	ParsedFields []ParsedLogField `json:"-"`
 }
 
 type LogField struct {
@@ -65,13 +71,14 @@ func Parse() (*App, error) {
 		return nil, fmt.Errorf("error parsing config file json: %w", err)
 	}
 
-	cfg.ParsedLogFields = make([]ParsedLogField, len(cfg.LogFields))
-	for i, field := range cfg.LogFields {
+	logs := &cfg.Logs
+	logs.ParsedFields = make([]ParsedLogField, len(logs.Fields))
+	for i, field := range logs.Fields {
 		lf, jqErr := gojq.Parse(field.Query)
 		if jqErr != nil {
 			return nil, fmt.Errorf("error parsing log field: %w", jqErr)
 		}
-		cfg.ParsedLogFields[i] = ParsedLogField{Title: field.Title, Query: *lf}
+		logs.ParsedFields[i] = ParsedLogField{Title: field.Title, Query: *lf}
 	}
 
 	cfg.ParsedExcludePaths = make([]regexp.Regexp, len(cfg.ExcludePaths))

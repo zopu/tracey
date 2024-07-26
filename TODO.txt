@@ -1,10 +1,11 @@
 Now:
+Multiple log groups
 
 For Demo:
-Multiple log groups
 Search traces
 
 TODO:
+Indent list similarly when collapsed
 Move logs to a separate pane
 Summarize SQL queries
 Table layouts for timeline

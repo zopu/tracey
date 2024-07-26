@@ -42,7 +42,7 @@ func initialModel(config config.App) model {
 			Traces: []xray.TraceSummary{},
 		},
 		detailsPane: ui.DetailsPane{
-			LogFields: config.ParsedLogFields,
+			LogFields: config.Logs.ParsedFields,
 		},
 		selectedPane: PaneList,
 		store:        &st,
@@ -165,7 +165,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ui.ListSelectionMsg:
 		m.detailsPane.Details = mo.None[xray.TraceDetails]()
-		return m, fetchTraceDetails(msg.ID, m.config.LogGroupName)
+		return m, fetchTraceDetails(msg.ID, m.config.Logs.Groups[0])
 
 	case ui.ListAtEndMsg:
 		return m, func() tea.Msg {
