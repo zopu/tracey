@@ -12,10 +12,16 @@ import (
 type TraceList struct {
 	Traces    []aws.TraceSummary
 	NextToken mo.Option[string]
+	Width     int
 	selected  mo.Option[int]
 	focused   bool
 	cursor    int
-	Width     int
+}
+
+func NewTraceList() TraceList {
+	return TraceList{
+		Traces: []aws.TraceSummary{},
+	}
 }
 
 func (tl *TraceList) MoveCursor(amount int) {
@@ -75,7 +81,9 @@ func (tl TraceList) View() string {
 
 	s := "No trace selected\n"
 	if tl.selected.IsPresent() {
-		s = tl.Traces[tl.selected.MustGet()].Title()
+		s = listEnumeratorStyle().Render("→ ")
+		title := tl.Traces[tl.selected.MustGet()].Title()
+		s += tl.StyleItem(tl.selected.MustGet()).Render(title)
 	}
 
 	style := lipgloss.NewStyle().
@@ -89,7 +97,6 @@ func (tl TraceList) ViewFocused() string {
 	if len(tl.Traces) == 0 {
 		return "Looking for traces...\n\n"
 	}
-	enumeratorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("99")).MarginRight(1)
 
 	tIDs := lo.Map(tl.Traces, func(t aws.TraceSummary, _ int) string {
 		return t.Title()
@@ -98,22 +105,9 @@ func (tl TraceList) ViewFocused() string {
 	start := max(0, tl.cursor-5)
 	end := min(len(tIDs), start+10)
 	l := list.New(tIDs[start:end]).
-		EnumeratorStyle(enumeratorStyle).
+		EnumeratorStyle(listEnumeratorStyle()).
 		ItemStyleFunc(func(_ list.Items, i int) lipgloss.Style {
-			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#c6d0f5")).MarginRight(1)
-			if tl.cursor == i+start {
-				style = style.Background(lipgloss.Color("#303446"))
-			}
-			if sel, ok := tl.selected.Get(); ok && sel == i+start {
-				style = style.Background(lipgloss.Color("#414559"))
-			}
-			if tl.Traces[i+start].HasError() {
-				style = style.Foreground(lipgloss.Color("#e78284"))
-			}
-			if tl.Traces[i+start].HasFault() {
-				style = style.Foreground(lipgloss.Color("#e78284"))
-			}
-			return style
+			return tl.StyleItem(i + start)
 		})
 
 	enumerator := func(_ list.Items, i int) string {
@@ -131,4 +125,25 @@ func (tl TraceList) ViewFocused() string {
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("63"))
 	return style.Render(s)
+}
+
+func listEnumeratorStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("99")).MarginRight(1)
+}
+
+func (tl TraceList) StyleItem(index int) lipgloss.Style {
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color("#c6d0f5")).MarginRight(1)
+	if tl.cursor == index {
+		style = style.Background(lipgloss.Color("#303446"))
+	}
+	if sel, ok := tl.selected.Get(); ok && sel == index {
+		style = style.Background(lipgloss.Color("#414559"))
+	}
+	if tl.Traces[index].HasError() {
+		style = style.Foreground(lipgloss.Color("#e78284"))
+	}
+	if tl.Traces[index].HasFault() {
+		style = style.Foreground(lipgloss.Color("#e78284"))
+	}
+	return style
 }
