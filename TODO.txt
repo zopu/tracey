@@ -1,19 +1,22 @@
 Now:
 
 For Demo:
-Search traces
+Indent list similarly when collapsed
+Table layouts for timeline
+
+For OS:
+go install should work correctly
+look in local dir for config, and handle default config
+README file
 
 TODO:
-Indent list similarly when collapsed
-Move logs to a separate pane
-Summarize SQL queries
-Table layouts for timeline
-Figure out why traces are only fetched back to last calendar hour
 Scroll through details pane
+Search traces
+Configure AWS region, etc.
+Summarize SQL queries
+Figure out why traces are only fetched back to last calendar hour
 Backoff for incomplete log queries
 Use one aws client config throughout
-Search log groups for logs
-Handle cursor when trace list changes
 Configurable preset lists for different things that look sus
 Live updating
 
@@ -30,3 +33,5 @@ Sizing of details pane when list is collapsed
 Multiple log groups
 Log groups specified by RE
 Show user IP in trace details
+Trim down date format in trace list
+Show IP in trace list
