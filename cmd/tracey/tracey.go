@@ -26,6 +26,7 @@ type Pane interface {
 
 type model struct {
 	config        config.App
+	logGroups     []string
 	store         *store.Store
 	error         mo.Option[string]
 	list          ui.TraceList
@@ -34,10 +35,11 @@ type model struct {
 	width, height int
 }
 
-func initialModel(config config.App) model {
+func initialModel(config config.App, logGroups []string) model {
 	st := store.New()
 	m := model{
-		config: config,
+		config:    config,
+		logGroups: logGroups,
 		list: ui.TraceList{
 			Traces: []aws.TraceSummary{},
 		},
@@ -96,14 +98,14 @@ func fetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextTo
 	}
 }
 
-func fetchTraceDetails(id aws.TraceID, logGroupName string) tea.Cmd {
+func fetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		details, err := aws.FetchTraceDetails(ctx, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
-		logsQueryID, err := aws.StartLogsQuery(ctx, logGroupName, id)
+		logsQueryID, err := aws.StartLogsQuery(ctx, logGroupNames, id)
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
@@ -165,7 +167,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ui.ListSelectionMsg:
 		m.detailsPane.Details = mo.None[aws.TraceDetails]()
-		return m, fetchTraceDetails(msg.ID, m.config.Logs.Groups[0])
+		return m, fetchTraceDetails(msg.ID, m.logGroups)
 
 	case ui.ListAtEndMsg:
 		return m, func() tea.Msg {
@@ -228,7 +230,25 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error reading config: %s", err)
 	}
-	p := tea.NewProgram(initialModel(*config), tea.WithAltScreen())
+
+	logGroups, err := aws.GetLogGroups(context.Background())
+	if err != nil {
+		log.Fatalf("Could not load log groups")
+	}
+	filteredLogGroups := make([]string, 0)
+	for _, groupFilter := range config.Logs.Groups {
+		re, reErr := regexp.Compile(groupFilter)
+		if reErr != nil {
+			log.Fatalf("Could not compile log group regexp: %s", reErr)
+		}
+		for _, lg := range logGroups {
+			if re.MatchString(lg) {
+				filteredLogGroups = append(filteredLogGroups, lg)
+			}
+		}
+	}
+
+	p := tea.NewProgram(initialModel(*config, filteredLogGroups), tea.WithAltScreen())
 	if _, err = p.Run(); err != nil {
 		log.Fatalf("Alas, there's been an error: %v", err)
 	}

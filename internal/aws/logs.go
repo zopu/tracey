@@ -7,6 +7,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
+	"github.com/samber/lo"
 )
 
 type LogData struct {
@@ -15,7 +17,7 @@ type LogData struct {
 
 type LogQueryID string
 
-func StartLogsQuery(ctx context.Context, logGroupName string, id TraceID) (*LogQueryID, error) {
+func StartLogsQuery(ctx context.Context, logGroupNames []string, id TraceID) (*LogQueryID, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS configuration, %w", err)
@@ -26,10 +28,10 @@ func StartLogsQuery(ctx context.Context, logGroupName string, id TraceID) (*LogQ
 	start := time.Now().Add(-24 * time.Hour).Unix()
 	query := fmt.Sprintf("fields @log, @timestamp, @message | filter @message like \"%s\" | sort @timestamp desc", id)
 	params := cloudwatchlogs.StartQueryInput{
-		QueryString:  &query,
-		StartTime:    &start,
-		EndTime:      &end,
-		LogGroupName: &logGroupName,
+		QueryString:   &query,
+		StartTime:     &start,
+		EndTime:       &end,
+		LogGroupNames: logGroupNames,
 	}
 
 	output, err := client.StartQuery(ctx, &params)
@@ -56,4 +58,25 @@ func FetchLogs(ctx context.Context, queryID LogQueryID) (*LogData, error) {
 	}
 
 	return &LogData{Results: results}, nil
+}
+
+func GetLogGroups(ctx context.Context) ([]string, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS configuration, %w", err)
+	}
+	client := cloudwatchlogs.NewFromConfig(cfg)
+
+	// TODO: Handle pagination
+	params := cloudwatchlogs.DescribeLogGroupsInput{}
+
+	resp, err := client.DescribeLogGroups(ctx, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get log groups: %w", err)
+	}
+
+	groups := lo.Map(resp.LogGroups, func(g types.LogGroup, _ int) string {
+		return *g.LogGroupName
+	})
+	return groups, nil
 }
