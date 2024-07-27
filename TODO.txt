@@ -4,7 +4,6 @@ For Demo:
 Search traces
 
 TODO:
-Show user IP in trace details
 Indent list similarly when collapsed
 Move logs to a separate pane
 Summarize SQL queries
@@ -30,3 +29,4 @@ Handle pagination of summary responses
 Sizing of details pane when list is collapsed
 Multiple log groups
 Log groups specified by RE
+Show user IP in trace details

@@ -37,6 +37,19 @@ func (d DetailsPane) View() string {
 
 	s := ""
 
+	// Find a Client IP
+	var clientIP *string
+	for _, segment := range td.Segments {
+		if segment.HTTP.Request.ClientIP != "" {
+			ip := segment.HTTP.Request.ClientIP
+			clientIP = &ip
+			break
+		}
+	}
+	if clientIP != nil {
+		s += fmt.Sprintf("Client: %s\n\n", *clientIP)
+	}
+
 	for _, segment := range td.Segments {
 		duration := segment.EndTime.Time().Sub(segment.StartTime.Time())
 		s += fmt.Sprintf("%s\t%s (%s)\n", segment.Origin, segment.Name, duration.String())
