@@ -5,9 +5,7 @@ Indent list similarly when collapsed
 Table layouts for timeline
 
 For OS:
-go install should work correctly
 look in local dir for config, and handle default config
-README file
 
 TODO:
 Scroll through details pane
@@ -35,3 +33,5 @@ Log groups specified by RE
 Show user IP in trace details
 Trim down date format in trace list
 Show IP in trace list
+README file
+go install should work correctly
