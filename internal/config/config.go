@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 
 	"github.com/itchyny/gojq"
@@ -39,14 +40,35 @@ type ParsedLogField struct {
 }
 
 func findConfigFile() (*string, error) {
-	// TODO: Thrash out possible config file locations
+	// Check cwd and parents
+	dir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("error getting current directory: %w", err)
+	}
+	filename := ".tracey.json"
+	for {
+		filePath := filepath.Join(dir, filename)
+		if _, statErr := os.Stat(filePath); statErr == nil {
+			return &filePath, nil
+		}
+
+		parentDir := filepath.Dir(dir)
+		// Check if we have reached the root directory
+		if parentDir == dir {
+			break
+		}
+		dir = parentDir
+	}
+
+	// Now check XDG_CONFIG_HOME
 	configHome := os.Getenv("XDG_CONFIG_HOME")
 	if configHome != "" {
 		loc := path.Join(configHome, "tracey", "tracey.json")
-		if _, err := os.Stat(loc); err == nil {
+		if _, statErr := os.Stat(loc); statErr == nil {
 			return &loc, nil
 		}
 	}
+
 	return nil, errors.New("no config file found")
 }
 
