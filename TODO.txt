@@ -1,18 +1,20 @@
 Now:
 
-For Demo:
-Indent list similarly when collapsed
-Table layouts for timeline
-
 For OS:
 look in local dir for config, and handle default config
 
+Usability:
+Keyboard shortcuts at bottom
+Good error message on no AWS credentials
+
 TODO:
+Table layouts for timeline
+Headers on panes
 Scroll through details pane
+Tab through details pane elements and view details
 Search traces
 Configure AWS region, etc.
 Summarize SQL queries
-Figure out why traces are only fetched back to last calendar hour
 Backoff for incomplete log queries
 Use one aws client config throughout
 Configurable preset lists for different things that look sus
@@ -35,3 +37,4 @@ Trim down date format in trace list
 Show IP in trace list
 README file
 go install should work correctly
+Indent list similarly when collapsed

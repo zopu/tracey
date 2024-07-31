@@ -40,9 +40,7 @@ func initialModel(config config.App, logGroups []string) model {
 	m := model{
 		config:    config,
 		logGroups: logGroups,
-		list: ui.TraceList{
-			Traces: []aws.TraceSummary{},
-		},
+		list:      ui.NewTraceList(),
 		detailsPane: ui.DetailsPane{
 			LogFields: config.Logs.ParsedFields,
 		},
