@@ -39,6 +39,12 @@ type ParsedLogField struct {
 	Query gojq.Query `json:"-"`
 }
 
+type NoFileFoundError struct{}
+
+func (e NoFileFoundError) Error() string {
+	return "no config file found"
+}
+
 func findConfigFile() (*string, error) {
 	// Check cwd and parents
 	dir, err := os.Getwd()
@@ -69,14 +75,19 @@ func findConfigFile() (*string, error) {
 		}
 	}
 
-	return nil, errors.New("no config file found")
+	return nil, NoFileFoundError{}
 }
 
 func Parse() (*App, error) {
 	path, err := findConfigFile()
 	if err != nil {
-		return nil, fmt.Errorf("cannot determine config path: %w", err)
+		if errors.Is(err, NoFileFoundError{}) {
+			defaultCfg := App{}
+			return &defaultCfg, nil
+		}
+		return nil, fmt.Errorf("error finding config file: %w", err)
 	}
+
 	f, err := os.Open(*path)
 	if err != nil {
 		return nil, fmt.Errorf("error opening config file: %w", err)

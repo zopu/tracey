@@ -25,7 +25,13 @@ type TraceSummary struct {
 
 func (t TraceSummary) Title() string {
 	startTime := t.Data.StartTime.Format("01-02 15:04:05")
-	ip := *t.Data.Http.ClientIp
+	if t.Data.Http == nil {
+		return "(no trace http data)"
+	}
+	ip := "(no client ip)"
+	if t.Data.Http.ClientIp != nil {
+		ip = *t.Data.Http.ClientIp
+	}
 	title := fmt.Sprintf(
 		"%s %v %s (%d) %s %vms %s",
 		*t.Data.Id,

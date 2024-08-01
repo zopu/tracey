@@ -78,15 +78,18 @@ func fetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextTo
 	store.AddTraceSummaries(result.Summaries)
 	summaries := store.GetTraceSummaries()
 
-	filtered := make([]aws.TraceSummary, 0)
 	// Filter out traces that match any exclude regex
-	for _, exclude := range pathFilters {
-		for _, trace := range summaries {
-			if !exclude.MatchString(trace.Path()) {
-				filtered = append(filtered, trace)
+	filtered := make([]aws.TraceSummary, 0)
+outer:
+	for _, trace := range summaries {
+		for _, exclude := range pathFilters {
+			if exclude.MatchString(trace.Path()) {
+				continue outer
 			}
 		}
+		filtered = append(filtered, trace)
 	}
+
 	shouldFetchMore := result.NextToken.IsPresent() && store.Size() < 20
 
 	return TraceSummaryMsg{
@@ -103,7 +106,10 @@ func fetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
-		logsQueryID, err := aws.StartLogsQuery(ctx, logGroupNames, id)
+		var logsQueryID *aws.LogQueryID
+		if len(logGroupNames) > 0 {
+			logsQueryID, err = aws.StartLogsQuery(ctx, logGroupNames, id)
+		}
 		if err != nil {
 			return ErrorMsg{Msg: err.Error()}
 		}
@@ -158,7 +164,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TraceDetailsMsg:
 		m.detailsPane.Details = mo.Some(*msg.trace)
 		m.detailsPane.Logs = mo.None[aws.LogData]()
-		return m, fetchLogs(*msg.logsQueryID, time.Second)
+		if msg.logsQueryID != nil {
+			return m, fetchLogs(*msg.logsQueryID, time.Second)
+		}
+		return m, nil
 
 	case TraceLogsMsg:
 		m.detailsPane.Logs = mo.Some(*msg.logs)

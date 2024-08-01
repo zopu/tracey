@@ -1,13 +1,11 @@
 Now:
 
 For OS:
-look in local dir for config, and handle default config
-
-Usability:
-Keyboard shortcuts at bottom
-Good error message on no AWS credentials
 
 TODO:
+Keyboard shortcuts at bottom
+Good error message on no AWS credentials
+Sort out details pane height
 Table layouts for timeline
 Headers on panes
 Scroll through details pane
@@ -38,3 +36,4 @@ Show IP in trace list
 README file
 go install should work correctly
 Indent list similarly when collapsed
+look in local dir for config, and handle default config
