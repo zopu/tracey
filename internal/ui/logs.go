@@ -101,8 +101,7 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 		BorderBottom(true).
 		Bold(false)
 	style.Selected = style.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
+		Foreground(lipgloss.Color("#c6d0f5")).
 		Bold(false)
 	t.SetStyles(style)
 	s := t.View() + "\n"

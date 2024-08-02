@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"regexp"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/samber/mo"
@@ -87,12 +86,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case ui.TraceDetailsMsg:
-		m.detailsPane.Details = mo.Some(*msg.Trace)
-		m.detailsPane.Logs = mo.None[aws.LogData]()
-		if msg.LogsQueryID != nil {
-			return m, ui.FetchLogs(*msg.LogsQueryID, time.Second)
-		}
-		return m, nil
+		return m, m.detailsPane.Update(msg)
 
 	case ui.TraceLogsMsg:
 		m.detailsPane.Logs = mo.Some(*msg.Logs)

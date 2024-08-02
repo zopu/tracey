@@ -15,6 +15,10 @@ type LogData struct {
 	Results *cloudwatchlogs.GetQueryResultsOutput
 }
 
+func (l LogData) IsEmpty() bool {
+	return l.Results == nil || len(l.Results.Results) == 0
+}
+
 type LogQueryID string
 
 func StartLogsQuery(ctx context.Context, logGroupNames []string, id TraceID) (*LogQueryID, error) {

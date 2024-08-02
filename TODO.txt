@@ -3,9 +3,10 @@ Now:
 For OS:
 
 TODO:
+Table layouts for timeline
+Add filter to trace list request
 Good error message on no AWS credentials
 Scrolling of details pane
-Table layouts for timeline
 Headers on panes
 Tab through details pane elements and view details
 Search traces

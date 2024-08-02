@@ -49,7 +49,15 @@ func (d *DetailsPane) SetFocus(focus bool) {
 	d.focused = focus
 }
 
-func (d *DetailsPane) Update(_ tea.Msg) tea.Cmd {
+func (d *DetailsPane) Update(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) { //nolint:gocritic // Standard pattern for messages
+	case TraceDetailsMsg:
+		d.Details = mo.Some(*msg.Trace)
+		d.Logs = mo.None[aws.LogData]()
+		if msg.LogsQueryID != nil {
+			return FetchLogs(*msg.LogsQueryID, time.Second)
+		}
+	}
 	return nil
 }
 
@@ -64,19 +72,6 @@ func (d DetailsPane) View() string {
 	td := d.Details.MustGet()
 
 	s := ""
-
-	// Find a Client IP
-	var clientIP *string
-	for _, segment := range td.Segments {
-		if segment.HTTP.Request.ClientIP != "" {
-			ip := segment.HTTP.Request.ClientIP
-			clientIP = &ip
-			break
-		}
-	}
-	if clientIP != nil {
-		s += fmt.Sprintf("Client: %s\n\n", *clientIP)
-	}
 
 	for _, segment := range td.Segments {
 		duration := segment.EndTime.Time().Sub(segment.StartTime.Time())
@@ -96,8 +91,10 @@ func (d DetailsPane) View() string {
 	}
 
 	d.Logs.ForEach(func(logs aws.LogData) {
-		s += "Logs:\n"
-		s += ViewLogs(logs, d.LogFields, d.Width-8)
+		if !logs.IsEmpty() {
+			s += "Logs:\n\n"
+			s += ViewLogs(logs, d.LogFields, d.Width-8)
+		}
 	})
 
 	style := lipgloss.NewStyle().
