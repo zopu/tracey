@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -11,6 +12,29 @@ import (
 	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
 )
+
+type TraceDetailsMsg struct {
+	Trace       *aws.TraceDetails
+	LogsQueryID *aws.LogQueryID
+}
+
+func FetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		details, err := aws.FetchTraceDetails(ctx, id)
+		if err != nil {
+			return ErrorMsg{Msg: err.Error()}
+		}
+		var logsQueryID *aws.LogQueryID
+		if len(logGroupNames) > 0 {
+			logsQueryID, err = aws.StartLogsQuery(ctx, logGroupNames, id)
+		}
+		if err != nil {
+			return ErrorMsg{Msg: err.Error()}
+		}
+		return TraceDetailsMsg{Trace: details, LogsQueryID: logsQueryID}
+	}
+}
 
 type DetailsPane struct {
 	LogFields []config.ParsedLogField

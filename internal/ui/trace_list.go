@@ -1,13 +1,52 @@
 package ui
 
 import (
+	"context"
+	"regexp"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/list"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/zopu/tracey/internal/aws"
+	"github.com/zopu/tracey/internal/store"
 )
+
+type TraceSummaryMsg struct {
+	NextToken       mo.Option[string]
+	Traces          []aws.TraceSummary
+	ShouldFetchMore bool
+}
+
+func FetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextToken mo.Option[string]) tea.Msg {
+	result, err := aws.FetchTraceSummaries(context.Background(), nextToken)
+	if err != nil {
+		return ErrorMsg{Msg: err.Error()}
+	}
+	store.AddTraceSummaries(result.Summaries)
+	summaries := store.GetTraceSummaries()
+
+	// Filter out traces that match any exclude regex
+	filtered := make([]aws.TraceSummary, 0)
+outer:
+	for _, trace := range summaries {
+		for _, exclude := range pathFilters {
+			if exclude.MatchString(trace.Path()) {
+				continue outer
+			}
+		}
+		filtered = append(filtered, trace)
+	}
+
+	shouldFetchMore := result.NextToken.IsPresent() && store.Size() < 20
+
+	return TraceSummaryMsg{
+		Traces:          filtered,
+		NextToken:       result.NextToken,
+		ShouldFetchMore: shouldFetchMore,
+	}
+}
 
 type TraceList struct {
 	Traces    []aws.TraceSummary

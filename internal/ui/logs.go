@@ -1,18 +1,36 @@
 package ui
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/itchyny/gojq"
 	"github.com/samber/lo"
 	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
 )
+
+type TraceLogsMsg struct {
+	Logs *aws.LogData
+}
+
+func FetchLogs(id aws.LogQueryID, delay time.Duration) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(delay)
+		logs, err := aws.FetchLogs(context.Background(), id)
+		if err != nil {
+			return ErrorMsg{Msg: err.Error()}
+		}
+		return TraceLogsMsg{Logs: logs}
+	}
+}
 
 //nolint:gocognit // Work in progress
 func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) string {

@@ -53,86 +53,9 @@ func initialModel(config config.App, logGroups []string) model {
 	return m
 }
 
-type TraceSummaryMsg struct {
-	NextToken       mo.Option[string]
-	traces          []aws.TraceSummary
-	ShouldFetchMore bool
-}
-
-type TraceDetailsMsg struct {
-	trace       *aws.TraceDetails
-	logsQueryID *aws.LogQueryID
-}
-
-type TraceLogsMsg struct {
-	logs *aws.LogData
-}
-
-type ErrorMsg struct {
-	Msg string
-}
-
-func fetchTraceSummaries(store *store.Store, pathFilters []regexp.Regexp, nextToken mo.Option[string]) tea.Msg {
-	result, err := aws.FetchTraceSummaries(context.Background(), nextToken)
-	if err != nil {
-		return ErrorMsg{Msg: err.Error()}
-	}
-	store.AddTraceSummaries(result.Summaries)
-	summaries := store.GetTraceSummaries()
-
-	// Filter out traces that match any exclude regex
-	filtered := make([]aws.TraceSummary, 0)
-outer:
-	for _, trace := range summaries {
-		for _, exclude := range pathFilters {
-			if exclude.MatchString(trace.Path()) {
-				continue outer
-			}
-		}
-		filtered = append(filtered, trace)
-	}
-
-	shouldFetchMore := result.NextToken.IsPresent() && store.Size() < 20
-
-	return TraceSummaryMsg{
-		traces:          filtered,
-		NextToken:       result.NextToken,
-		ShouldFetchMore: shouldFetchMore,
-	}
-}
-
-func fetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
-	return func() tea.Msg {
-		ctx := context.Background()
-		details, err := aws.FetchTraceDetails(ctx, id)
-		if err != nil {
-			return ErrorMsg{Msg: err.Error()}
-		}
-		var logsQueryID *aws.LogQueryID
-		if len(logGroupNames) > 0 {
-			logsQueryID, err = aws.StartLogsQuery(ctx, logGroupNames, id)
-		}
-		if err != nil {
-			return ErrorMsg{Msg: err.Error()}
-		}
-		return TraceDetailsMsg{trace: details, logsQueryID: logsQueryID}
-	}
-}
-
-func fetchLogs(id aws.LogQueryID, delay time.Duration) tea.Cmd {
-	return func() tea.Msg {
-		time.Sleep(delay)
-		logs, err := aws.FetchLogs(context.Background(), id)
-		if err != nil {
-			return ErrorMsg{Msg: err.Error()}
-		}
-		return TraceLogsMsg{logs: logs}
-	}
-}
-
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg {
-		return fetchTraceSummaries(m.store, m.config.ParsedExcludePaths, mo.None[string]())
+		return ui.FetchTraceSummaries(m.store, m.config.ParsedExcludePaths, mo.None[string]())
 	}
 }
 
@@ -151,36 +74,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.updatePaneDimensions()
 
-	case ErrorMsg:
+	case ui.ErrorMsg:
 		m.error = mo.Some(msg.Msg)
 
-	case TraceSummaryMsg:
-		m.list.Traces = msg.traces
+	case ui.TraceSummaryMsg:
+		m.list.Traces = msg.Traces
 		m.list.NextToken = msg.NextToken
 		if msg.ShouldFetchMore {
 			return m, func() tea.Msg {
-				return fetchTraceSummaries(m.store, m.config.ParsedExcludePaths, msg.NextToken)
+				return ui.FetchTraceSummaries(m.store, m.config.ParsedExcludePaths, msg.NextToken)
 			}
 		}
 
-	case TraceDetailsMsg:
-		m.detailsPane.Details = mo.Some(*msg.trace)
+	case ui.TraceDetailsMsg:
+		m.detailsPane.Details = mo.Some(*msg.Trace)
 		m.detailsPane.Logs = mo.None[aws.LogData]()
-		if msg.logsQueryID != nil {
-			return m, fetchLogs(*msg.logsQueryID, time.Second)
+		if msg.LogsQueryID != nil {
+			return m, ui.FetchLogs(*msg.LogsQueryID, time.Second)
 		}
 		return m, nil
 
-	case TraceLogsMsg:
-		m.detailsPane.Logs = mo.Some(*msg.logs)
+	case ui.TraceLogsMsg:
+		m.detailsPane.Logs = mo.Some(*msg.Logs)
 
 	case ui.ListSelectionMsg:
 		m.detailsPane.Details = mo.None[aws.TraceDetails]()
-		return m, fetchTraceDetails(msg.ID, m.logGroups)
+		return m, ui.FetchTraceDetails(msg.ID, m.logGroups)
 
 	case ui.ListAtEndMsg:
 		return m, func() tea.Msg {
-			return fetchTraceSummaries(m.store, m.config.ParsedExcludePaths, m.list.NextToken)
+			return ui.FetchTraceSummaries(m.store, m.config.ParsedExcludePaths, m.list.NextToken)
 		}
 
 	case tea.KeyMsg:
@@ -239,7 +162,7 @@ func (m model) View() string {
 func main() {
 	config, err := config.Parse()
 	if err != nil {
-		log.Fatalf("Error reading config: %s", err)
+		log.Fatalf("Error loading config: %s", err)
 	}
 
 	logGroups, err := aws.GetLogGroups(context.Background())
