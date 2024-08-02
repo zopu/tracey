@@ -34,8 +34,6 @@ func FetchLogs(id aws.LogQueryID, delay time.Duration) tea.Cmd {
 
 //nolint:gocognit // Work in progress
 func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) string {
-	s := fmt.Sprintf("Status: %s\n\n", logs.Results.Status)
-
 	columns := lo.Map(fields, func(f config.ParsedLogField, _ int) table.Column {
 		return table.Column{
 			Title: f.Title,
@@ -44,7 +42,7 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 	})
 
 	if len(columns) == 0 {
-		return s
+		return ""
 	}
 
 	rows := make([]table.Row, 0)
@@ -107,8 +105,6 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 		Background(lipgloss.Color("57")).
 		Bold(false)
 	t.SetStyles(style)
-	s += t.View()
-
-	s += "\n"
+	s := t.View() + "\n"
 	return s
 }

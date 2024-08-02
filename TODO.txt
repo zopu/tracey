@@ -4,10 +4,9 @@ For OS:
 
 TODO:
 Good error message on no AWS credentials
-Sort out details pane height
+Scrolling of details pane
 Table layouts for timeline
 Headers on panes
-Scroll through details pane
 Tab through details pane elements and view details
 Search traces
 Configure AWS region, etc.
@@ -16,6 +15,7 @@ Backoff for incomplete log queries
 Use one aws client config throughout
 Configurable preset lists for different things that look sus
 Live updating
+Stop text wrapping in list
 
 Done:
 Sort traces by time

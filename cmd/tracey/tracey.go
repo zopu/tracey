@@ -141,9 +141,9 @@ func (m *model) updatePaneDimensions() {
 	m.detailsPane.Width = m.width
 	m.helpBar.Width = m.width
 	if m.selectedPane == PaneList {
-		m.detailsPane.Height = m.height - 12
+		m.detailsPane.Height = m.height - 11
 	} else {
-		m.detailsPane.Height = m.height - 3
+		m.detailsPane.Height = m.height - 2
 	}
 }
 
@@ -153,7 +153,7 @@ func (m model) View() string {
 	}
 
 	s := m.list.View()
-	s += "\n\n"
+	s += "\n"
 	s += m.detailsPane.View()
 	s += m.helpBar.Render()
 	return s
