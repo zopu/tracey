@@ -31,6 +31,7 @@ type model struct {
 	error         mo.Option[string]
 	list          ui.TraceList
 	detailsPane   ui.DetailsPane
+	helpBar       ui.HelpBar
 	selectedPane  int
 	width, height int
 }
@@ -44,6 +45,7 @@ func initialModel(config config.App, logGroups []string) model {
 		detailsPane: ui.DetailsPane{
 			LogFields: config.Logs.ParsedFields,
 		},
+		helpBar:      ui.HelpBar{},
 		selectedPane: PaneList,
 		store:        &st,
 	}
@@ -214,10 +216,11 @@ func (m *model) selectNextPane() {
 func (m *model) updatePaneDimensions() {
 	m.list.Width = m.width
 	m.detailsPane.Width = m.width
+	m.helpBar.Width = m.width
 	if m.selectedPane == PaneList {
-		m.detailsPane.Height = m.height - 13
+		m.detailsPane.Height = m.height - 12
 	} else {
-		m.detailsPane.Height = m.height - 4
+		m.detailsPane.Height = m.height - 3
 	}
 }
 
@@ -229,6 +232,7 @@ func (m model) View() string {
 	s := m.list.View()
 	s += "\n\n"
 	s += m.detailsPane.View()
+	s += m.helpBar.Render()
 	return s
 }
 

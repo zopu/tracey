@@ -31,7 +31,11 @@ func (d *DetailsPane) Update(_ tea.Msg) tea.Cmd {
 
 func (d DetailsPane) View() string {
 	if !d.Details.IsPresent() {
-		return "Select a trace to view\n\n"
+		s := "Select a trace to view"
+		for range d.Height - 3 {
+			s += "\n"
+		}
+		return s
 	}
 	td := d.Details.MustGet()
 

@@ -3,7 +3,6 @@ Now:
 For OS:
 
 TODO:
-Keyboard shortcuts at bottom
 Good error message on no AWS credentials
 Sort out details pane height
 Table layouts for timeline
@@ -37,3 +36,4 @@ README file
 go install should work correctly
 Indent list similarly when collapsed
 look in local dir for config, and handle default config
+Keyboard shortcuts at bottom
