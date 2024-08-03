@@ -74,6 +74,10 @@ func (d DetailsPane) View() string {
 	s := ""
 
 	for _, segment := range td.Segments {
+		if segment.ParentID != "" {
+			continue
+		}
+
 		duration := segment.EndTime.Time().Sub(segment.StartTime.Time())
 		s += fmt.Sprintf("%s\t%s (%s)\n", segment.Origin, segment.Name, duration.String())
 
@@ -115,6 +119,13 @@ func viewSubsegment(subsegment aws.SubSegment) string {
 		duration.String(),
 		subsegment.Name,
 	)
+	subsegment.SQL.ForEach(func(sql aws.SQL) {
+		re := regexp.MustCompile(`\s+`)
+		q := re.ReplaceAllString(sql.SanitizedQuery, " ")
+		if len(q) > 0 {
+			s += fmt.Sprintf("\t\t\t\tQuery: %.150s\n", q)
+		}
+	})
 	for _, subsegment := range subsegment.SubSegments {
 		s += viewSubsegment(subsegment)
 	}
