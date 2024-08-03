@@ -120,7 +120,7 @@ func (tl TraceList) View() string {
 
 	s := "No trace selected"
 	if tl.selected.IsPresent() {
-		s = listEnumeratorStyle().Render("→ ")
+		s = listEnumeratorStyle().Render("  ")
 		title := tl.Traces[tl.selected.MustGet()].Title()
 		s += tl.StyleItem(tl.selected.MustGet()).Render(title)
 	}
