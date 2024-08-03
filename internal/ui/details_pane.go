@@ -102,10 +102,9 @@ func (d DetailsPane) View() string {
 	})
 
 	style := lipgloss.NewStyle().
-		Width(d.Width - 2).
-		Height(d.Height - 4).
-		MaxHeight(d.Height - 2).
-		BorderStyle(lipgloss.RoundedBorder())
+		Width(d.Width).
+		Height(d.Height - 2).
+		MaxHeight(d.Height)
 	if d.focused {
 		style = style.BorderForeground(lipgloss.Color("63"))
 	}
