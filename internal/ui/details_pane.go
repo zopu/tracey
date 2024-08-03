@@ -97,7 +97,7 @@ func (d DetailsPane) View() string {
 	d.Logs.ForEach(func(logs aws.LogData) {
 		if !logs.IsEmpty() {
 			s += "Logs:\n\n"
-			s += ViewLogs(logs, d.LogFields, d.Width-8)
+			s += ViewLogs(logs, d.LogFields, d.Width)
 		}
 	})
 

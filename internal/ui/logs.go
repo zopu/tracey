@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/evertras/bubble-table/table"
 	"github.com/itchyny/gojq"
 	"github.com/samber/lo"
 	"github.com/zopu/tracey/internal/aws"
@@ -34,16 +36,13 @@ func FetchLogs(id aws.LogQueryID, delay time.Duration) tea.Cmd {
 
 //nolint:gocognit // Work in progress
 func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) string {
-	columns := lo.Map(fields, func(f config.ParsedLogField, _ int) table.Column {
-		return table.Column{
-			Title: f.Title,
-			Width: len(f.Title),
-		}
-	})
-
-	if len(columns) == 0 {
+	if len(fields) == 0 {
 		return ""
 	}
+
+	widths := lo.Map(fields, func(f config.ParsedLogField, _ int) int {
+		return len(f.Title)
+	})
 
 	rows := make([]table.Row, 0)
 	for _, event := range logs.Results.Results {
@@ -54,7 +53,7 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 				if err != nil {
 					log.Fatalf("failed to unmarshal json: %v", err)
 				}
-				row := make(table.Row, len(columns))
+				row := make(table.RowData, len(fields))
 				for i, field := range fields {
 					it := field.Query.Run(unmarshalled)
 					for {
@@ -68,42 +67,49 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 							}
 							log.Fatalln(jqErr)
 						}
-						row[i] = fmt.Sprintf("%#s", v)
-						width := len(row[i]) + 2
-						if columns[i].Width < width {
-							columns[i].Width = width
+						rowKey := strconv.Itoa(i)
+						val := strings.TrimSpace(fmt.Sprintf("%#s", v))
+						row[rowKey] = val
+						width := len(val)
+						if widths[i] < width {
+							widths[i] = width
 						}
 					}
 				}
-				rows = append(rows, row)
+				rows = append(rows, table.NewRow(row))
 			}
 		}
 	}
 
 	// Extend last column to fill the width of the table
 	totalWidth := 0
-	for _, column := range columns {
-		totalWidth += column.Width
+	for _, w := range widths {
+		totalWidth += w
 	}
-	if totalWidth < tableWidth {
-		columns[len(columns)-1].Width += tableWidth - totalWidth
+	if totalWidth < tableWidth-4 {
+		widths[len(widths)-1] += tableWidth - totalWidth - 4
 	}
 
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows(rows),
-	)
+	columns := lo.Map(fields, func(f config.ParsedLogField, i int) table.Column {
+		return table.NewColumn(strconv.Itoa(i), f.Title, widths[i])
+	})
 
-	style := table.DefaultStyles()
-	style.Header = style.Header.
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		BorderBottom(true).
-		Bold(false)
-	style.Selected = style.Selected.
-		Foreground(lipgloss.Color("#c6d0f5")).
-		Bold(false)
-	t.SetStyles(style)
+	t := table.New(columns).
+		WithTargetWidth(tableWidth).
+		WithRows(rows).
+		WithMultiline(true).
+		WithBaseStyle(
+			lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#c6d0f5")).
+				BorderForeground(lipgloss.Color("240")).
+				Bold(false)).
+		HeaderStyle(
+			lipgloss.NewStyle().
+				Bold(true)).
+		HighlightStyle(
+			lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#c6d0f5")).
+				Background(lipgloss.Color("#414559")))
 	s := t.View() + "\n"
 	return s
 }

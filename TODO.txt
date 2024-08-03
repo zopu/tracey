@@ -1,9 +1,9 @@
 Now:
+Table layouts for timeline
 
 For OS:
 
 TODO:
-Table layouts for timeline
 Add filter to trace list request
 Good error message on no AWS credentials
 Scrolling of details pane
