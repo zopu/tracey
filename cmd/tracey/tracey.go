@@ -88,12 +88,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ui.TraceDetailsMsg:
 		return m, m.detailsPane.Update(msg)
 
+	case ui.ClearTraceDetailsMsg:
+		return m, m.detailsPane.Update(msg)
+
 	case ui.TraceLogsMsg:
 		m.detailsPane.Logs = mo.Some(*msg.Logs)
 
 	case ui.ListSelectionMsg:
-		m.detailsPane.Details = mo.None[aws.TraceDetails]()
-		return m, ui.FetchTraceDetails(msg.ID, m.logGroups)
+		clearCmd := func() tea.Msg {
+			return ui.ClearTraceDetailsMsg{}
+		}
+		fetchCmd := ui.FetchTraceDetails(msg.ID, m.logGroups)
+		return m, tea.Sequence(clearCmd, fetchCmd)
 
 	case ui.ListAtEndMsg:
 		return m, func() tea.Msg {

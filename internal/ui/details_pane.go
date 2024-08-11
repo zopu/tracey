@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/evertras/bubble-table/table"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
@@ -17,6 +20,8 @@ type TraceDetailsMsg struct {
 	Trace       *aws.TraceDetails
 	LogsQueryID *aws.LogQueryID
 }
+
+type ClearTraceDetailsMsg struct{}
 
 func FetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
 	return func() tea.Msg {
@@ -38,11 +43,11 @@ func FetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
 
 type DetailsPane struct {
 	LogFields []config.ParsedLogField
-	Details   mo.Option[aws.TraceDetails]
 	Logs      mo.Option[aws.LogData]
 	focused   bool
 	Width     int
 	Height    int
+	timeline  mo.Option[table.Model]
 }
 
 func (d *DetailsPane) SetFocus(focus bool) {
@@ -50,53 +55,128 @@ func (d *DetailsPane) SetFocus(focus bool) {
 }
 
 func (d *DetailsPane) Update(msg tea.Msg) tea.Cmd {
-	switch msg := msg.(type) { //nolint:gocritic // Standard pattern for messages
+	switch msg := msg.(type) {
 	case TraceDetailsMsg:
-		d.Details = mo.Some(*msg.Trace)
+		d.updateTimeline(*msg.Trace)
 		d.Logs = mo.None[aws.LogData]()
 		if msg.LogsQueryID != nil {
 			return FetchLogs(*msg.LogsQueryID, time.Second)
 		}
+	case ClearTraceDetailsMsg:
+		d.timeline = mo.None[table.Model]()
+		d.Logs = mo.None[aws.LogData]()
 	}
 	return nil
 }
 
+type timeLineRow struct {
+	startTime time.Duration
+	duration  time.Duration
+	details   []string
+}
+
+func (d *DetailsPane) updateTimeline(td aws.TraceDetails) {
+	rows := make([]timeLineRow, 0)
+	for _, segment := range td.Segments {
+		if segment.ParentID != "" {
+			continue
+		}
+
+		details := []string{
+			fmt.Sprintf("%s %s", segment.Name, segment.Origin),
+		}
+
+		segment.SQL.ForEach(func(sql aws.SQL) {
+			re := regexp.MustCompile(`\s+`)
+			q := re.ReplaceAllString(sql.SanitizedQuery, " ")
+			truncated := fmt.Sprintf("SQL Query: %.150s", q)
+			details = append(details, truncated)
+		})
+
+		duration := segment.EndTime.Time().Sub(segment.StartTime.Time())
+		rows = append(rows, timeLineRow{
+			startTime: time.Duration(0),
+			duration:  duration,
+			details:   details,
+		})
+
+		for _, subsegment := range segment.SubSegments {
+			rows = append(rows, getSubsegmentRows(subsegment, segment.StartTime.Time())...)
+		}
+	}
+
+	columns := []table.Column{
+		table.NewColumn("Start Time", "Start Time", 15),
+		table.NewColumn("Duration", "Duration", 15),
+		table.NewColumn("Details", "Details", d.Width-34),
+	}
+	tableRows := lo.Map(rows, func(row timeLineRow, _ int) table.Row {
+		return table.NewRow(table.RowData{
+			"Start Time": row.startTime.String(),
+			"Duration":   row.duration.String(),
+			"Details":    strings.Join(row.details, "\n"),
+		})
+	})
+	t := table.New(columns).
+		WithRows(tableRows).
+		WithMultiline(true).
+		WithBaseStyle(
+			lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#c6d0f5")).
+				BorderForeground(lipgloss.Color("240")).
+				Bold(false)).
+		HeaderStyle(
+			lipgloss.NewStyle().
+				Bold(true)).
+		HighlightStyle(
+			lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#c6d0f5")).
+				Background(lipgloss.Color("#414559")))
+	d.timeline = mo.Some(t)
+}
+
+func getSubsegmentRows(subsegment aws.SubSegment, startTime time.Time) []timeLineRow {
+	rows := make([]timeLineRow, 0)
+	timeOffset := subsegment.StartTime.Time().Sub(startTime)
+	duration := subsegment.EndTime.Time().Sub(subsegment.StartTime.Time())
+	details := []string{
+		subsegment.Name,
+	}
+	subsegment.SQL.ForEach(func(sql aws.SQL) {
+		re := regexp.MustCompile(`\s+`)
+		q := re.ReplaceAllString(sql.SanitizedQuery, " ")
+		if len(q) > 0 {
+			truncated := fmt.Sprintf("SQL Query: %.150s", q)
+			details = append(details, truncated)
+		}
+	})
+	rows = append(rows, timeLineRow{
+		startTime: timeOffset,
+		duration:  duration,
+		details:   details,
+	})
+	for _, subsegment := range subsegment.SubSegments {
+		rows = append(rows, getSubsegmentRows(subsegment, startTime)...)
+	}
+	return rows
+}
+
 func (d DetailsPane) View() string {
-	if !d.Details.IsPresent() {
+	if !d.timeline.IsPresent() {
 		s := "Select a trace to view"
 		for range d.Height - 3 {
 			s += "\n"
 		}
 		return s
 	}
-	td := d.Details.MustGet()
 
-	s := ""
-
-	for _, segment := range td.Segments {
-		if segment.ParentID != "" {
-			continue
-		}
-
-		duration := segment.EndTime.Time().Sub(segment.StartTime.Time())
-		s += fmt.Sprintf("%s\t%s (%s)\n", segment.Origin, segment.Name, duration.String())
-
-		for _, subsegment := range segment.SubSegments {
-			s += viewSubsegment(subsegment)
-		}
-
-		segment.SQL.ForEach(func(sql aws.SQL) {
-			re := regexp.MustCompile(`\s+`)
-			q := re.ReplaceAllString(sql.SanitizedQuery, " ")
-			s += fmt.Sprintf("Query: %.150s\n", q)
-		})
-
-		s += "\n"
-	}
+	s := "Timeline:\n"
+	s += d.timeline.MustGet().View()
+	s += "\n"
 
 	d.Logs.ForEach(func(logs aws.LogData) {
 		if !logs.IsEmpty() {
-			s += "Logs:\n\n"
+			s += "Logs:\n"
 			s += ViewLogs(logs, d.LogFields, d.Width)
 		}
 	})
@@ -109,24 +189,4 @@ func (d DetailsPane) View() string {
 		style = style.BorderForeground(lipgloss.Color("63"))
 	}
 	return style.Render(s)
-}
-
-func viewSubsegment(subsegment aws.SubSegment) string {
-	duration := subsegment.EndTime.Time().Sub(subsegment.StartTime.Time())
-	s := fmt.Sprintf("%s\t%s\t%s\n",
-		subsegment.StartTime.Time().Format(time.StampMilli),
-		duration.String(),
-		subsegment.Name,
-	)
-	subsegment.SQL.ForEach(func(sql aws.SQL) {
-		re := regexp.MustCompile(`\s+`)
-		q := re.ReplaceAllString(sql.SanitizedQuery, " ")
-		if len(q) > 0 {
-			s += fmt.Sprintf("\t\t\t\tQuery: %.150s\n", q)
-		}
-	})
-	for _, subsegment := range subsegment.SubSegments {
-		s += viewSubsegment(subsegment)
-	}
-	return s
 }

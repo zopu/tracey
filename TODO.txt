@@ -1,14 +1,11 @@
 Now:
-Table layouts for timeline
-
-For OS:
 
 TODO:
+handle resize properly
+Tab through details pane elements and view details
 Add filter to trace list request
 Good error message on no AWS credentials
 Scrolling of details pane
-Headers on panes
-Tab through details pane elements and view details
 Search traces
 Configure AWS region, etc.
 Summarize SQL queries
@@ -38,3 +35,4 @@ go install should work correctly
 Indent list similarly when collapsed
 look in local dir for config, and handle default config
 Keyboard shortcuts at bottom
+Table layouts for timeline
