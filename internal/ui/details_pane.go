@@ -105,6 +105,11 @@ func (d *DetailsPane) Update(msg tea.Msg) tea.Cmd {
 			}
 		}
 	}
+	if d.selectedTable == detailSelectedTimeline && d.timeline.IsPresent() {
+		t, cmd := d.timeline.MustGet().Update(msg)
+		d.timeline = mo.Some(t)
+		return cmd
+	}
 	return nil
 }
 
@@ -115,12 +120,14 @@ func (d *DetailsPane) setTimelineFocus(focus bool) {
 			t = t.WithBaseStyle(
 				lipgloss.NewStyle().BorderForeground(lipgloss.Color("63")).
 					Foreground(lipgloss.Color("#c6d0f5")).
-					Bold(false))
+					Bold(false)).
+				Focused(true)
 		} else {
 			t = t.WithBaseStyle(
 				lipgloss.NewStyle().BorderForeground(lipgloss.Color("240")).
 					Foreground(lipgloss.Color("#c6d0f5")).
-					Bold(false))
+					Bold(false)).
+				Focused(false)
 		}
 		d.timeline = mo.Some(t)
 	}
@@ -184,11 +191,7 @@ func (d *DetailsPane) updateTimeline(td aws.TraceDetails) {
 				Bold(false)).
 		HeaderStyle(
 			lipgloss.NewStyle().
-				Bold(true)).
-		HighlightStyle(
-			lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#c6d0f5")).
-				Background(lipgloss.Color("#414559")))
+				Bold(true))
 	d.timeline = mo.Some(t)
 }
 
