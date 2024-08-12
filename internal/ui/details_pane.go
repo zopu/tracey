@@ -41,17 +41,30 @@ func FetchTraceDetails(id aws.TraceID, logGroupNames []string) tea.Cmd {
 	}
 }
 
+const (
+	detailSelectedNone = iota
+	detailSelectedTimeline
+	detailSelectedLogs
+)
+
 type DetailsPane struct {
-	LogFields []config.ParsedLogField
-	Logs      mo.Option[aws.LogData]
-	focused   bool
-	Width     int
-	Height    int
-	timeline  mo.Option[table.Model]
+	LogFields     []config.ParsedLogField
+	Logs          mo.Option[aws.LogData]
+	focused       bool
+	Width         int
+	Height        int
+	timeline      mo.Option[table.Model]
+	selectedTable int
 }
 
 func (d *DetailsPane) SetFocus(focus bool) {
 	d.focused = focus
+	if focus {
+		d.selectedTable = detailSelectedTimeline
+		d.setTimelineFocus(true)
+		return
+	}
+	d.selectedTable = detailSelectedNone
 }
 
 func (d *DetailsPane) Update(msg tea.Msg) tea.Cmd {
@@ -65,8 +78,52 @@ func (d *DetailsPane) Update(msg tea.Msg) tea.Cmd {
 	case ClearTraceDetailsMsg:
 		d.timeline = mo.None[table.Model]()
 		d.Logs = mo.None[aws.LogData]()
+	case tea.KeyMsg:
+		switch msg.String() { //nolint:gocritic // standard pattern
+		case "tab":
+			switch d.selectedTable {
+			case detailSelectedNone:
+				d.selectedTable = detailSelectedTimeline
+				d.setTimelineFocus(true)
+			case detailSelectedTimeline:
+				d.setTimelineFocus(false)
+				if d.Logs.IsPresent() &&
+					d.Logs.MustGet().Results != nil &&
+					len(d.Logs.MustGet().Results.Results) > 0 {
+					d.selectedTable = detailSelectedLogs
+					return nil
+				}
+				return func() tea.Msg {
+					return SelectNextPaneMsg{}
+				}
+			case detailSelectedLogs:
+				d.selectedTable = detailSelectedNone
+				d.setTimelineFocus(false)
+				return func() tea.Msg {
+					return SelectNextPaneMsg{}
+				}
+			}
+		}
 	}
 	return nil
+}
+
+func (d *DetailsPane) setTimelineFocus(focus bool) {
+	if d.timeline.IsPresent() {
+		t := d.timeline.MustGet()
+		if focus {
+			t = t.WithBaseStyle(
+				lipgloss.NewStyle().BorderForeground(lipgloss.Color("63")).
+					Foreground(lipgloss.Color("#c6d0f5")).
+					Bold(false))
+		} else {
+			t = t.WithBaseStyle(
+				lipgloss.NewStyle().BorderForeground(lipgloss.Color("240")).
+					Foreground(lipgloss.Color("#c6d0f5")).
+					Bold(false))
+		}
+		d.timeline = mo.Some(t)
+	}
 }
 
 type timeLineRow struct {
@@ -177,7 +234,8 @@ func (d DetailsPane) View() string {
 	d.Logs.ForEach(func(logs aws.LogData) {
 		if !logs.IsEmpty() {
 			s += "Logs:\n"
-			s += ViewLogs(logs, d.LogFields, d.Width)
+			logsFocused := d.selectedTable == detailSelectedLogs
+			s += ViewLogs(logs, d.LogFields, d.Width, logsFocused)
 		}
 	})
 

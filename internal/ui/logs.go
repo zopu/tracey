@@ -35,7 +35,7 @@ func FetchLogs(id aws.LogQueryID, delay time.Duration) tea.Cmd {
 }
 
 //nolint:gocognit // Work in progress
-func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) string {
+func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int, focused bool) string {
 	if len(fields) == 0 {
 		return ""
 	}
@@ -94,6 +94,11 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 		return table.NewColumn(strconv.Itoa(i), f.Title, widths[i])
 	})
 
+	borderColor := lipgloss.Color("240")
+	if focused {
+		borderColor = lipgloss.Color("63")
+	}
+
 	t := table.New(columns).
 		WithTargetWidth(tableWidth).
 		WithRows(rows).
@@ -101,7 +106,7 @@ func ViewLogs(logs aws.LogData, fields []config.ParsedLogField, tableWidth int) 
 		WithBaseStyle(
 			lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#c6d0f5")).
-				BorderForeground(lipgloss.Color("240")).
+				BorderForeground(borderColor).
 				Bold(false)).
 		HeaderStyle(
 			lipgloss.NewStyle().

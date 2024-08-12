@@ -100,8 +100,14 @@ func (tl *TraceList) Update(msg tea.Msg) tea.Cmd {
 			return func() tea.Msg {
 				return ListSelectionMsg{ID: aws.TraceID(tl.Traces[tl.cursor].ID())}
 			}
+
+		case "tab":
+			return func() tea.Msg {
+				return SelectNextPaneMsg{}
+			}
 		}
 	}
+
 	if tl.cursor == len(tl.Traces)-1 {
 		return func() tea.Msg {
 			return ListAtEndMsg{}

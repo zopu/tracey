@@ -1,8 +1,8 @@
 Now:
+Tab through details pane elements and view details
 
 TODO:
 handle resize properly
-Tab through details pane elements and view details
 Add filter to trace list request
 Good error message on no AWS credentials
 Scrolling of details pane

@@ -105,15 +105,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg {
 			return ui.FetchTraceSummaries(m.store, m.config.ParsedExcludePaths, m.list.NextToken)
 		}
+	case ui.SelectNextPaneMsg:
+		m.selectNextPane()
+		m.updatePaneDimensions()
+		return m, nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "tab":
-			m.selectNextPane()
-			m.updatePaneDimensions()
-			return m, nil
 
 		default:
 			cmd := pane.Update(msg)
