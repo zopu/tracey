@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/samber/mo"
 	"github.com/zopu/tracey/internal/aws"
 	"github.com/zopu/tracey/internal/config"
@@ -140,11 +141,6 @@ func (m *model) updatePaneDimensions() {
 	m.list.Width = m.width
 	m.detailsPane.Width = m.width
 	m.helpBar.Width = m.width
-	if m.selectedPane == PaneList {
-		m.detailsPane.Height = m.height - 11
-	} else {
-		m.detailsPane.Height = m.height - 2
-	}
 }
 
 func (m model) View() string {
@@ -152,11 +148,14 @@ func (m model) View() string {
 		return "Error: " + m.error.MustGet() + "\n\n"
 	}
 
-	s := m.list.View()
-	s += "\n"
-	s += m.detailsPane.View()
-	s += m.helpBar.Render()
-	return s
+	list := m.list.View()
+	helpBar := m.helpBar.Render()
+	main := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height - lipgloss.Height(list) - lipgloss.Height(helpBar)).
+		Render(m.detailsPane.View())
+
+	return lipgloss.JoinVertical(lipgloss.Top, list, main, helpBar)
 }
 
 func main() {

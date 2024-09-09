@@ -143,8 +143,15 @@ func (tl TraceList) ViewFocused() string {
 		return "Looking for traces...\n\n"
 	}
 
-	tIDs := lo.Map(tl.Traces, func(t aws.TraceSummary, _ int) string {
-		return t.Title()
+	tIDs := lo.Map(tl.Traces, func(summary aws.TraceSummary, _ int) string {
+		// I'd expect lipgloss inline styling to truncate these to the width, but it doesn't,
+		// so we have to do it here.
+		t := summary.Title()
+		maxLen := tl.Width - 6
+		if len(t) > maxLen {
+			return t[:maxLen-3] + "..."
+		}
+		return t
 	})
 
 	start := max(0, tl.cursor-5)

@@ -52,7 +52,6 @@ type DetailsPane struct {
 	Logs          mo.Option[aws.LogData]
 	focused       bool
 	Width         int
-	Height        int
 	timeline      mo.Option[table.Model]
 	selectedTable int
 }
@@ -224,9 +223,6 @@ func getSubsegmentRows(subsegment aws.SubSegment, startTime time.Time) []timeLin
 func (d DetailsPane) View() string {
 	if !d.timeline.IsPresent() {
 		s := "Select a trace to view"
-		for range d.Height - 3 {
-			s += "\n"
-		}
 		return s
 	}
 
@@ -242,10 +238,7 @@ func (d DetailsPane) View() string {
 		}
 	})
 
-	style := lipgloss.NewStyle().
-		Width(d.Width).
-		Height(d.Height - 2).
-		MaxHeight(d.Height)
+	style := lipgloss.NewStyle()
 	if d.focused {
 		style = style.BorderForeground(lipgloss.Color("63"))
 	}
