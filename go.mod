@@ -1,6 +1,6 @@
 module github.com/zopu/tracey
 
-go 1.22.2
+go 1.23.1
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.26
